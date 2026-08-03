@@ -1,4 +1,4 @@
-import type { Epic, Release, Story, Tracker } from "./types";
+import type { Epic, EpicStatus, Release, Story, Tracker } from "./types";
 
 export type Semester = {
   half: 1 | 2;
@@ -104,6 +104,27 @@ export function epicStats(t: Tracker): Record<string, EpicStat> {
   return m;
 }
 
+/**
+ * Sebuah epic dihitung "selesai" HANYA kalau pekerjaannya benar-benar rampung:
+ * semua story-nya sudah Done, ATAU statusnya sudah "Deploy" (rilis ke production).
+ * Epic yang cuma punya end_date manual tapi progress-nya belum 100% TIDAK dianggap
+ * selesai — ini akar bug lama yang bikin epic 0% ikut terhitung "selesai".
+ * Catatan: EPIC_STATUS tidak punya "Done"; terminalnya "Deploy", dan "User Testing"
+ * berarti pengerjaan sudah rampung (100% story) tapi masih di UAT.
+ */
+export function isEpicDone(status: EpicStatus, st?: EpicStat): boolean {
+  if (status === "Hold") return false;           // ditahan → belum selesai
+  if (status === "Deploy") return true;          // sudah rilis ke production
+  return !!st && st.total > 0 && st.done === st.total; // semua story Done (mis. 100% di UAT)
+}
+
+/** Persentase progress epic — pakai poin kalau ada, kalau tidak pakai jumlah story. */
+export const epicPct = (st?: EpicStat): number =>
+  !st ? 0
+    : st.points > 0 ? Math.round((st.donePoints / st.points) * 100)
+    : st.total > 0 ? Math.round((st.done / st.total) * 100)
+    : 0;
+
 export type EpicWithWindow = Epic & { win: ReturnType<typeof epicWindow> };
 
 export type Kpi = {
@@ -118,11 +139,13 @@ export type Kpi = {
 
 export function computeKpi(t: Tracker, sem: Semester): Kpi {
   const withWin: EpicWithWindow[] = t.epics.map((e) => ({ ...e, win: epicWindow(e, t.stories) }));
+  const stats = epicStats(t); // untuk menilai epic benar-benar selesai, bukan sekadar punya end_date
 
   const epicsRunning = withWin
     .filter((e) => overlapsSemester(e.win, sem))
     .sort((a, b) => (a.win.start || "").localeCompare(b.win.start || ""));
-  const epicsDone = epicsRunning.filter((e) => inSemester(e.win.end, sem));
+  // Selesai = pekerjaan rampung (lihat isEpicDone), BUKAN sekadar punya end_date.
+  const epicsDone = epicsRunning.filter((e) => isEpicDone(e.status, stats[e.id]));
 
   const storiesDone = t.stories.filter((s) => s.progress === "Done" && inSemester(s.end_date, sem));
   const pointsDone = storiesDone.reduce((a, s) => a + num(s.story_points), 0);
@@ -164,7 +187,7 @@ export function recapText(t: Tracker, kpi: Kpi, format: RecapFormat = "text"): s
 
   L.push(h1(`Rekap ${kpi.sem.label.replace(" · ", " ")}`), "");
   L.push(
-    `${b("Ringkasan")}: ${kpi.epicsDone.length} epic selesai dari ${kpi.epicsRunning.length} epic yang berjalan · ` +
+    `${b("Ringkasan")}: ${kpi.epicsDone.length} epic selesai dari ${kpi.epicsRunning.length} epic aktif di semester ini · ` +
       `${kpi.pointsDone} story point delivered (${kpi.storiesDone.length} story) · ` +
       `${kpi.releases.length} release ke production` +
       (kpi.sprints.length ? ` · sprint ${kpi.sprints[0]}–${kpi.sprints[kpi.sprints.length - 1]}` : "")
@@ -191,7 +214,7 @@ export function recapText(t: Tracker, kpi: Kpi, format: RecapFormat = "text"): s
     done.forEach(block);
   }
   if (ongoing.length) {
-    L.push(h2(`Epic masih berjalan (${ongoing.length})`), "");
+    L.push(h2(`Epic belum selesai (${ongoing.length})`), "");
     ongoing.forEach(block);
   }
   if (kpi.releases.length) {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import {
-  barGeom, computeKpi, csvOfStories, epicStats, fmt, recapText, semesterOf, type RecapFormat,
+  barGeom, computeKpi, csvOfStories, epicStats, fmt, isEpicDone, recapText, semesterOf, type RecapFormat,
 } from "@/lib/kpi";
 import {
   BAR_TONE, Badge, Btn, ErrorBar, Label, Loading, Metric, Progress, Segmented, Stepper,
@@ -63,7 +63,7 @@ export default function RecapPage() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric v={kpi.epicsDone.length} k="Epic selesai" icon="🏆" accent />
-        <Metric v={kpi.epicsRunning.length} k="Epic berjalan" icon="📦" />
+        <Metric v={ongoing.length} k="Belum selesai" icon="📦" />
         <Metric v={kpi.releases.length} k="Release ke production" icon="🚀" />
         <Metric v={kpi.pointsDone} k={`Story point · ${kpi.storiesDone.length} story`} icon="🔢" />
       </div>
@@ -92,12 +92,23 @@ export default function RecapPage() {
               const g = barGeom(e.win, sem);
               const st = stats[e.id];
               const pct = st?.points ? Math.round((st.donePoints / st.points) * 100) : 0;
+              const done = isEpicDone(e.status, st); // sumber yang sama dengan hitungan di kartu & rekap
               return (
                 <div key={e.id} className="grid grid-cols-1 items-center gap-2 lg:grid-cols-12">
                   <div className="min-w-0 lg:col-span-5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium text-ink-900">{e.name}</span>
                       <Badge v={e.status} />
+                      {/* Penanda selesai/berjalan — konsisten dengan angka di kartu & rekap. */}
+                      {done ? (
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-600 ring-1 ring-inset ring-sky-200">
+                          ✓ selesai
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-sun-100 px-2 py-0.5 text-[10px] font-semibold text-sun-700 ring-1 ring-inset ring-sun-300">
+                          berjalan
+                        </span>
+                      )}
                       {versionsOf(e.id).map((v) => (
                         <span key={v} className="rounded-full bg-ocean-100 px-2 py-0.5 font-mono text-[10px] text-ocean-600">v{v}</span>
                       ))}
@@ -170,7 +181,7 @@ export default function RecapPage() {
           <div className="rounded-xl border border-ocean-200 bg-ocean-100 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-ocean-700">Highlight</div>
             <p className="mt-2 text-sm leading-relaxed text-ink-900">
-              <b>{kpi.epicsDone.length}</b> epic selesai dari <b>{kpi.epicsRunning.length}</b> yang berjalan,
+              <b>{kpi.epicsDone.length}</b> epic selesai dari <b>{kpi.epicsRunning.length}</b> epic aktif di semester ini,
               menghasilkan <b>{kpi.pointsDone}</b> story point lewat <b>{kpi.storiesDone.length}</b> story,
               dan <b>{kpi.releases.length}</b> release ke production
               {kpi.sprints.length > 0 && <> sepanjang sprint <b>{kpi.sprints[0]}–{kpi.sprints[kpi.sprints.length - 1]}</b></>}.
@@ -194,7 +205,7 @@ export default function RecapPage() {
 
           <div className="rounded-xl border border-mist-200 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-mist-600">
-              🔨 Masih berjalan ({ongoing.length})
+              🔨 Belum selesai ({ongoing.length})
             </div>
             <ul className="mt-2 space-y-1">
               {ongoing.slice(0, 6).map((e) => {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useTracker } from "@/lib/useTracker";
-import { computeKpi, currentSemester, epicStats, epicWindow, fmt, num } from "@/lib/kpi";
+import { computeKpi, currentSemester, epicPct, epicStats, epicWindow, fmt, isEpicDone, num } from "@/lib/kpi";
 import type { Story } from "@/lib/types";
 import {
   Badge, Card, EmptyRow, ErrorBar, JiraLink, Label, Loading, Metric, PageHead, Progress, ROW, Td, Th,
@@ -56,68 +56,97 @@ export default function OverviewPage() {
 
   if (loading) return <Loading />;
 
-  const active = data.epics.filter((e) => e.status !== "Hold" && !e.end_date);
+  // "Belum selesai" = epic yang aktif di semester ini tapi pekerjaannya belum rampung
+  // (lihat isEpicDone). Ini yang dulu keliru dipakai !end_date, bikin metriknya 0.
+  const ongoingEpics = kpi.epicsRunning.filter((e) => !isEpicDone(e.status, stats[e.id]));
   const inDev = data.stories.filter((s) => s.progress === "In Dev");
 
-  /* ---------- backlog hygiene: yang biasanya baru ketahuan pas tutup semester ---------- */
-  const todo: { what: string; why: string; href: string; icon: string }[] = [];
-
-  data.releases.forEach((r) => {
-    if (!r.folder_url)
-      todo.push({
-        icon: "🔗",
-        what: `v${r.fix_version} — URL folder SharePoint kosong`,
-        why: "Folder ini yang jadi bukti dokumen deployment waktu review KPI.",
-        href: "/releases",
-      });
-    if (r.status === "Planned" && r.deploy_date && r.deploy_date < new Date().toISOString().slice(0, 10))
-      todo.push({
-        icon: "🗓️",
-        what: `v${r.fix_version} — tanggal deploy sudah lewat, status masih Planned`,
-        why: "Kalau sudah rilis, ubah statusnya jadi Deployed supaya masuk hitungan semester.",
-        href: "/releases",
-      });
-  });
+  /* ---------- backlog hygiene: dikelompokkan per kategori + prioritas ----------
+     prio 1 = risiko rilis (paling kritikal) · 2 = kebersihan data · 3 = dokumentasi/audit.
+     Daftar diurutkan naik supaya yang kritikal selalu di atas.                       */
+  type Todo = { what: string; why: string; href: string; icon: string; cat: string; prio: 1 | 2 | 3 };
+  const todo: Todo[] = [];
 
   data.flags
     .filter((f) => f.uat === true && f.prod !== true)
     .forEach((f) =>
       todo.push({
-        icon: "🎚️",
+        icon: "🚩",
+        cat: "Feature Flag",
+        prio: 1,
         what: `${f.name} — TRUE di UAT, belum di PROD`,
         why: "Nyalakan saat release, atau catat alasan kalau memang ditahan.",
         href: "/flags",
       })
     );
 
+  const waiting = data.stories.filter((s) => s.progress === "Done" && s.release_status !== "Deployed").length;
+  if (waiting)
+    todo.push({
+      icon: "🚢",
+      cat: "Rilis",
+      prio: 1,
+      what: `${waiting} story Done tapi belum sampai production`,
+      why: "Assign ke fix version dan tandai Deployed setelah rilis.",
+      href: "/deploy",
+    });
+
+  data.releases.forEach((r) => {
+    if (r.status === "Planned" && r.deploy_date && r.deploy_date < new Date().toISOString().slice(0, 10))
+      todo.push({
+        icon: "🗓️",
+        cat: "Rilis",
+        prio: 1,
+        what: `v${r.fix_version} — tanggal deploy sudah lewat, status masih Planned`,
+        why: "Kalau sudah rilis, ubah statusnya jadi Deployed supaya masuk hitungan semester.",
+        href: "/releases",
+      });
+  });
+
+  const orphan = data.stories.filter((s) => !s.epic_id).length;
+  if (orphan)
+    todo.push({
+      icon: "🧩",
+      cat: "Data",
+      prio: 2,
+      what: `${orphan} story belum punya epic`,
+      why: "Story point-nya nggak kehitung ke epic manapun.",
+      href: "/stories",
+    });
+
   data.epics
     .filter((e) => epicWindow(e, data.stories).noDate)
     .forEach((e) =>
       todo.push({
         icon: "🗓️",
+        cat: "Data",
+        prio: 2,
         what: `${e.name} — belum punya tanggal sama sekali`,
         why: "Epic tanpa start date dan tanpa story bertanggal nggak masuk hitungan semester manapun.",
         href: "/epics",
       })
     );
 
-  const orphan = data.stories.filter((s) => !s.epic_id).length;
-  if (orphan)
-    todo.push({
-      icon: "🧩",
-      what: `${orphan} story belum punya epic`,
-      why: "Story point-nya nggak kehitung ke epic manapun.",
-      href: "/stories",
-    });
+  data.releases.forEach((r) => {
+    if (!r.folder_url)
+      todo.push({
+        icon: "🔗",
+        cat: "Dokumentasi",
+        prio: 3,
+        what: `v${r.fix_version} — URL folder SharePoint kosong`,
+        why: "Folder ini yang jadi bukti dokumen deployment waktu review KPI.",
+        href: "/releases",
+      });
+  });
 
-  const waiting = data.stories.filter((s) => s.progress === "Done" && s.release_status !== "Deployed").length;
-  if (waiting)
-    todo.push({
-      icon: "🚢",
-      what: `${waiting} story Done tapi belum sampai production`,
-      why: "Assign ke fix version dan tandai Deployed setelah rilis.",
-      href: "/deploy",
-    });
+  todo.sort((a, b) => a.prio - b.prio); // kritikal (rilis/flag) selalu di atas
+
+  // Warna kategori: merah = risiko rilis, kuning = data, abu = dokumentasi.
+  const catTone: Record<number, { pill: string; edge: string }> = {
+    1: { pill: "bg-alert-100 text-alert-600 ring-alert-200", edge: "border-l-alert-500" },
+    2: { pill: "bg-sun-100 text-sun-700 ring-sun-300", edge: "border-l-sun-500" },
+    3: { pill: "bg-mist-100 text-mist-600 ring-mist-200", edge: "border-l-mist-200" },
+  };
 
   return (
     <div>
@@ -129,10 +158,10 @@ export default function OverviewPage() {
       <ErrorBar msg={error} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Metric v={active.length} k="Epic aktif" icon="📦" />
+        <Metric v={ongoingEpics.length} k={`Belum selesai · S${sem.half}`} icon="📦" />
         <Metric v={inDev.length} k="Story in dev" icon="🔨" />
         <Metric v={velocity.avg} k="Avg velocity" icon="⚡" />
-        <Metric v={kpi.epicsDone.length} k={`Epic done · S${sem.half}`} icon="🏆" accent />
+        <Metric v={kpi.epicsDone.length} k={`Epic selesai · S${sem.half}`} icon="🏆" accent />
         <Metric v={data.stories.filter((s) => s.progress === "Done" && s.release_status !== "Deployed").length}
           k="Menunggu deploy" icon="🚢" />
       </div>
@@ -222,9 +251,9 @@ export default function OverviewPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {active.map((e) => {
+                  {ongoingEpics.map((e) => {
                     const st = stats[e.id];
-                    const pct = st?.points ? Math.round((st.donePoints / st.points) * 100) : 0;
+                    const pct = epicPct(st);
                     return (
                       <tr key={e.id} className={ROW}>
                         <Td>
@@ -245,8 +274,8 @@ export default function OverviewPage() {
                       </tr>
                     );
                   })}
-                  {active.length === 0 && (
-                    <EmptyRow cols={5} icon="🎉" msg="Semua epic sudah punya end date." />
+                  {ongoingEpics.length === 0 && (
+                    <EmptyRow cols={5} icon="🎉" msg="Semua epic di semester ini sudah selesai." />
                   )}
                 </tbody>
               </table>
@@ -302,12 +331,17 @@ export default function OverviewPage() {
               <Link
                 key={i}
                 href={t.href}
-                className="block rounded-xl border border-mist-200 bg-white p-3 shadow-card transition hover:border-sun-300"
+                className={`block rounded-xl border border-l-4 border-mist-200 bg-white p-3 shadow-card transition hover:border-mist-400 ${catTone[t.prio].edge}`}
               >
                 <div className="flex gap-2">
                   <span>{t.icon}</span>
-                  <div>
-                    <div className="text-sm font-medium text-ink-900">{t.what}</div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${catTone[t.prio].pill}`}>
+                        {t.cat}
+                      </span>
+                      <span className="text-sm font-medium text-ink-900">{t.what}</span>
+                    </div>
                     <div className="mt-0.5 text-xs text-mist-600">{t.why}</div>
                   </div>
                 </div>
