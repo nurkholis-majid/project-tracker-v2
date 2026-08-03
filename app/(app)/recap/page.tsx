@@ -62,19 +62,16 @@ export default function RecapPage() {
       <ErrorBar msg={error} />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric v={kpi.epicsDone.length} k="Epic selesai" icon="🏆" accent />
-        <Metric v={ongoing.length} k="Belum selesai" icon="📦" />
-        <Metric v={kpi.releases.length} k="Release ke production" icon="🚀" />
-        <Metric v={kpi.pointsDone} k={`Story point · ${kpi.storiesDone.length} story`} icon="🔢" />
+        <Metric v={kpi.epicsDone.length} k="Completed Epics" icon="🏆" accent />
+        <Metric v={ongoing.length} k="Open Epics" icon="📦" />
+        <Metric v={kpi.releases.length} k="Production Releases" icon="🚀" />
+        <Metric v={kpi.pointsDone} k={`Story points · ${kpi.storiesDone.length} story`} icon="🔢" />
       </div>
 
       {/* Timeline epic */}
       <section className="mb-5 rounded-2xl border border-mist-200 bg-white shadow-card">
         <div className="border-b border-mist-100 px-5 py-4">
-          <h2 className="text-base font-semibold">📦 Epic di semester ini</h2>
-          <p className="mt-0.5 text-sm text-mist-600">
-            Epic tanpa start date manual dihitung dari tanggal story-nya, jadi tetap masuk rekap.
-          </p>
+          <h2 className="text-base font-semibold">📦 Epic Delivery Timeline</h2>
         </div>
 
         <div className="px-5 py-4">
@@ -102,11 +99,11 @@ export default function RecapPage() {
                       {/* Penanda selesai/berjalan — konsisten dengan angka di kartu & rekap. */}
                       {done ? (
                         <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-600 ring-1 ring-inset ring-sky-200">
-                          ✓ selesai
+                          ✓ Completed
                         </span>
                       ) : (
                         <span className="rounded-full bg-sun-100 px-2 py-0.5 text-[10px] font-semibold text-sun-700 ring-1 ring-inset ring-sun-300">
-                          berjalan
+                          In Progress
                         </span>
                       )}
                       {versionsOf(e.id).map((v) => (
@@ -158,10 +155,7 @@ export default function RecapPage() {
       <section className="rounded-2xl border border-mist-200 bg-white shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-mist-100 px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold">📋 Rekap siap kirim</h2>
-            <p className="mt-0.5 text-sm text-mist-600">
-              Ringkasan pencapaian semester ini, tinggal disalin ke email atau deck.
-            </p>
+            <h2 className="text-base font-semibold">📋 Executive Summary</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Segmented
@@ -190,7 +184,7 @@ export default function RecapPage() {
 
           <div className="rounded-xl border border-mist-200 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-mist-600">
-              🏆 Epic selesai ({kpi.epicsDone.length})
+              🏆 Completed Epics ({kpi.epicsDone.length})
             </div>
             <ul className="mt-2 space-y-1">
               {kpi.epicsDone.slice(0, 6).map((e) => (
@@ -205,7 +199,7 @@ export default function RecapPage() {
 
           <div className="rounded-xl border border-mist-200 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-mist-600">
-              🔨 Belum selesai ({ongoing.length})
+              🔨 Active Epics ({ongoing.length})
             </div>
             <ul className="mt-2 space-y-1">
               {ongoing.slice(0, 6).map((e) => {
@@ -243,7 +237,7 @@ function PageHeadRecap({
     <header className="sticky top-0 z-20 -mx-4 mb-5 border-b border-mist-200 bg-paper/95 px-4 py-4 backdrop-blur lg:-mx-8 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Label>Periode penilaian</Label>
+          <Label>Review Period</Label>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Semester {half} · {year}</h1>
           <p className="mt-0.5 font-mono text-xs text-mist-600">{fmt(sem.start)} — {fmt(sem.end)}</p>
         </div>
