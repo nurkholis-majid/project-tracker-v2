@@ -152,24 +152,23 @@ export default function OverviewPage() {
     <div>
       <PageHead
         title="Overview"
-        sub={`Ringkasan delivery hari ini — sprint berjalan, velocity, dan hal yang perlu ditindaklanjuti.`}
       />
 
       <ErrorBar msg={error} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Metric v={ongoingEpics.length} k={`Belum selesai · S${sem.half}`} icon="📦" />
-        <Metric v={inDev.length} k="Story in dev" icon="🔨" />
-        <Metric v={velocity.avg} k="Avg velocity" icon="⚡" />
-        <Metric v={kpi.epicsDone.length} k={`Epic selesai · S${sem.half}`} icon="🏆" accent />
+        <Metric v={ongoingEpics.length} k={`Pending Epics · S${sem.half}`} icon="📦" />
+        <Metric v={inDev.length} k="Stories In Dev" icon="🔨" />
+        <Metric v={velocity.avg} k="Average Velocity" icon="⚡" />
+        <Metric v={kpi.epicsDone.length} k={`Completed Epic · S${sem.half}`} icon="🏆" accent />
         <Metric v={data.stories.filter((s) => s.progress === "Done" && s.release_status !== "Deployed").length}
-          k="Menunggu deploy" icon="🚢" />
+          k="Awaiting Deployment" icon="🚢" />
       </div>
 
       {/* Sprint aktif + velocity: dua hal yang paling sering ditanya waktu standup */}
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <section className="rounded-2xl border border-mist-200 bg-white p-5 shadow-card">
-          <Label>Sprint berjalan</Label>
+          <Label>Active Sprint</Label>
           {sprintInfo ? (
             <>
               <div className="mt-1 flex items-baseline gap-2">
@@ -178,7 +177,7 @@ export default function OverviewPage() {
               <div className="mt-3">
                 <Progress pct={sprintInfo.pts ? (sprintInfo.donePts / sprintInfo.pts) * 100 : 0} />
                 <div className="mt-1.5 font-mono text-[11px] text-mist-600">
-                  {sprintInfo.donePts}/{sprintInfo.pts} point selesai
+                  {sprintInfo.donePts} of {sprintInfo.pts} story points completed
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-ink-700">
@@ -194,8 +193,8 @@ export default function OverviewPage() {
 
         <section className="rounded-2xl border border-mist-200 bg-white p-5 shadow-card lg:col-span-2">
           <div className="flex items-center justify-between">
-            <Label>Velocity — story point done per sprint</Label>
-            <span className="font-mono text-[11px] text-mist-600">rata-rata {velocity.avg} pt</span>
+            <Label>Sprint Velocity</Label>
+            <span className="font-mono text-[11px] text-mist-600">avg velocity: {velocity.avg} points</span>
           </div>
 
           {velocity.rows.length ? (
@@ -238,7 +237,7 @@ export default function OverviewPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-5">
           <div>
-            <h2 className="mb-2 text-base font-semibold">📦 Epic yang belum selesai</h2>
+            <h2 className="mb-2 text-base font-semibold">📦 Active Epics</h2>
             <Card scroll offset="26rem">
               <table className="w-full border-collapse">
                 <thead>
@@ -283,16 +282,16 @@ export default function OverviewPage() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-base font-semibold">🚀 Antre release</h2>
+            <h2 className="mb-2 text-base font-semibold">🚀 Release Pipeline</h2>
             <Card scroll offset="26rem">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
                     <Th className="w-28">Fix version</Th>
-                    <Th className="w-32">Target deploy</Th>
-                    <Th className="w-24 text-right">Story</Th>
-                    <Th className="w-24 text-right">Point</Th>
-                    <Th>Status</Th>
+                    <Th className="w-32">Planned deployment</Th>
+                    <Th className="w-24 text-right">Stories</Th>
+                    <Th className="w-24 text-right">Story points</Th>
+                    <Th>Release status</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -324,7 +323,7 @@ export default function OverviewPage() {
 
         <section>
           <h2 className="mb-2 text-base font-semibold">
-            🧹 Perlu dibereskan {todo.length > 0 && <span className="text-mist-400">({todo.length})</span>}
+            🧹 Action Required {todo.length > 0 && <span className="text-mist-400">({todo.length})</span>}
           </h2>
           <div className="space-y-2">
             {todo.slice(0, 12).map((t, i) => (
