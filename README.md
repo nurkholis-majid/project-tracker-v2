@@ -26,8 +26,9 @@ Stack: Next.js 14 (App Router) · Supabase (Postgres + Auth + RLS) · Tailwind �
 1. Bikin project di [supabase.com](https://supabase.com) (region Singapore).
 2. **SQL Editor** → tempel isi `supabase/schema.sql` → **Run**.
    Lalu jalankan juga file migrasi di folder `supabase/` secara berurutan
-   (`migration-002` … `migration-006`) — `migration-006-carding.sql` yang bikin
-   tabel untuk menu **Carding**.
+   (`migration-002` … `migration-007`) — `migration-006-carding.sql` bikin tabel
+   menu **Carding**, dan `migration-007-requirements.sql` bikin tabel menu
+   **Requirements** (kanban PRD/BRD, sudah termasuk seed 8 stage default).
 3. **Authentication → Users → Add user** → bikin akun buat lu dan tim (email + password, centang *Auto Confirm*).
    Nggak ada halaman sign-up publik; user dibuat dari dashboard biar tools ini nggak bisa diakses orang luar.
 4. **Project Settings → API** → catat `Project URL`, `anon public key`, dan `service_role key`.

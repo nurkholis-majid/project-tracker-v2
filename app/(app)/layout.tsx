@@ -20,6 +20,7 @@ const NAV_GROUPS = [
   {
     section: "Perencanaan",
     items: [
+      { href: "/requirements", icon: "📋", label: "Requirements" },
       { href: "/carding", icon: "🃏", label: "Carding" },
       { href: "/epics",   icon: "📦", label: "Epic" },
       { href: "/stories", icon: "📝", label: "Story" },

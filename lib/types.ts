@@ -159,3 +159,54 @@ export type CardingStory = {
   sort_order: number;        // urutan menentukan story masuk sprint yang mana
   created_at: string;
 };
+
+/* =====================================================================
+   Requirements — kanban board PRD/BRD untuk mencatat kebutuhan user.
+   Stage bisa dikustom (tabel req_stages); kartu urut per prioritas.
+   ===================================================================== */
+
+export const REQ_CATEGORIES = ["PRD", "BRD"] as const;
+export const REQ_PRIORITIES = ["hi", "med", "lo"] as const;
+export type ReqCategory = (typeof REQ_CATEGORIES)[number];
+export type ReqPriority = (typeof REQ_PRIORITIES)[number];
+
+/** rank menentukan urutan kartu dalam satu kolom: High (0) di atas, Low (2) di bawah. */
+export const REQ_PRIORITY_META: Record<ReqPriority, { label: string; rank: number }> = {
+  hi:  { label: "High",   rank: 0 },
+  med: { label: "Medium", rank: 1 },
+  lo:  { label: "Low",    rank: 2 },
+};
+
+export const REQ_CATEGORY_META: Record<ReqCategory, { label: string }> = {
+  PRD: { label: "PRD · Product" },
+  BRD: { label: "BRD · Business" },
+};
+
+export type ReqCriterion = { text: string; done: boolean };
+export type ReqLink = { label: string; url: string };
+
+export type ReqStage = {
+  id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ReqCard = {
+  id: string;
+  code: string;
+  stage_id: string | null;
+  category: ReqCategory;
+  priority: ReqPriority;
+  title: string;
+  requester: string | null;
+  target_date: string | null;
+  description: string | null;
+  criteria: ReqCriterion[];
+  links: ReqLink[];
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+};
