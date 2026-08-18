@@ -153,7 +153,7 @@ export default function OverviewPage() {
     <div>
       <PageHead
         title="Overview"
-        sub={`Today\u2019s delivery snapshot \u2014 active sprint, velocity, and what needs follow-up.`}
+        sub={`Today’s delivery snapshot — active sprint, velocity, and what needs follow-up.`}
       />
 
       <ErrorBar msg={error} />

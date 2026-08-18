@@ -58,7 +58,7 @@ export default function SyncPage() {
     <div className="space-y-6">
       <PageHead
         title="Jira Sync"
-        sub="Pulls epics and stories from Jira. Read-only \u2014 nothing in Jira is changed."
+        sub="Pulls epics and stories from Jira. Read-only — nothing in Jira is changed."
       />
 
       <ErrorBar msg={error} />
@@ -83,7 +83,7 @@ export default function SyncPage() {
           </label>
 
           <div className="rounded-xl border border-sky-200 bg-sky-100 p-3 text-xs text-ink-700">
-            <div className="mb-1 flex items-center gap-1.5 font-semibold"><Icon name="lock" className="h-3.5 w-3.5" /> Safe \u2014 never overwritten:</div>
+            <div className="mb-1 flex items-center gap-1.5 font-semibold"><Icon name="lock" className="h-3.5 w-3.5" /> Safe — never overwritten:</div>
             task list (group), fix version, release status, document URLs, notes, epic start &amp; end dates,
             epic status, and feature flags. None of these exist in Jira.
           </div>

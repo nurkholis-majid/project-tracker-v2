@@ -161,7 +161,7 @@ export default function RecapPage() {
           <div>
             <h2 className="text-base font-semibold">Recap ready to share</h2>
             <p className="mt-0.5 text-sm text-mist-600">
-              A summary of this semester\u2019s achievements \u2014 copy it straight into an email or deck.
+              A summary of this semester’s achievements — copy it straight into an email or deck.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

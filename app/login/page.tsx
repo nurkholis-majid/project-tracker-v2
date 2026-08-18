@@ -31,7 +31,7 @@ export default function LoginPage() {
           <h1 className="text-xl font-semibold tracking-tight">Project Tracker</h1>
         </div>
         <p className="mt-2 text-sm text-mist-600">
-          Epics, stories, releases, and their docs \u2014 all in one place.
+          Epics, stories, releases, and their docs — all in one place.
         </p>
 
         <div className="mt-6 space-y-4">

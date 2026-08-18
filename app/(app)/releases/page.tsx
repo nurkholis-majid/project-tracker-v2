@@ -151,7 +151,7 @@ export default function ReleasesPage() {
       {form && (
         <Modal
           title={form.id ? `Edit release v${form.fix_version}` : "New fix version"}
-          subtitle="Documents stay in SharePoint \u2014 just one folder URL here."
+          subtitle="Documents stay in SharePoint — just one folder URL here."
           onClose={() => setForm(null)}
         >
           <div className="space-y-4">

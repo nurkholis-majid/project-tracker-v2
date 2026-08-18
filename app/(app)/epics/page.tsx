@@ -221,7 +221,7 @@ export default function EpicsPage() {
               </Field>
             </div>
 
-            <Field label="Notes" hint="Scope changes, meeting decisions \u2014 things you\u2019ll forget in 3 months.">
+            <Field label="Notes" hint="Scope changes, meeting decisions — things you’ll forget in 3 months.">
               <textarea rows={3} className={inputCls} value={form.notes ?? ""}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder='Jan 21: menu renamed to "Customer Claim"' />

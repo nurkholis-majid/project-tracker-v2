@@ -135,7 +135,7 @@ export default function CardingPage() {
     <div>
       <PageHead
         title="Carding"
-        sub="Break a project into stories, estimate each story\u2019s points, then see the projected number of sprints and the finish date."
+        sub="Break a project into stories, estimate each story’s points, then see the projected number of sprints and the finish date."
       >
         {projects.length > 0 && (
           <Select
