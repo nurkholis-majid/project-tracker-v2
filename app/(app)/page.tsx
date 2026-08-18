@@ -8,6 +8,7 @@ import type { Story } from "@/lib/types";
 import {
   Badge, Card, EmptyRow, ErrorBar, JiraLink, Label, Loading, Metric, PageHead, Progress, ROW, Td, Th,
 } from "@/components/ui";
+import { Ic, Icon } from "@/components/icons";
 
 export default function OverviewPage() {
   const { data, loading, error } = useTracker();
@@ -74,8 +75,8 @@ export default function OverviewPage() {
         icon: "🚩",
         cat: "Feature Flag",
         prio: 1,
-        what: `${f.name} — TRUE di UAT, belum di PROD`,
-        why: "Nyalakan saat release, atau catat alasan kalau memang ditahan.",
+        what: `${f.name} — TRUE in UAT, not yet in PROD`,
+        why: "Turn it on at release, or note why it is being held.",
         href: "/flags",
       })
     );
@@ -84,10 +85,10 @@ export default function OverviewPage() {
   if (waiting)
     todo.push({
       icon: "🚢",
-      cat: "Rilis",
+      cat: "Release",
       prio: 1,
-      what: `${waiting} story Done tapi belum sampai production`,
-      why: "Assign ke fix version dan tandai Deployed setelah rilis.",
+      what: `${waiting} Done stories not yet in production`,
+      why: "Assign a fix version and mark Deployed once shipped.",
       href: "/deploy",
     });
 
@@ -95,10 +96,10 @@ export default function OverviewPage() {
     if (r.status === "Planned" && r.deploy_date && r.deploy_date < new Date().toISOString().slice(0, 10))
       todo.push({
         icon: "🗓️",
-        cat: "Rilis",
+        cat: "Release",
         prio: 1,
-        what: `v${r.fix_version} — tanggal deploy sudah lewat, status masih Planned`,
-        why: "Kalau sudah rilis, ubah statusnya jadi Deployed supaya masuk hitungan semester.",
+        what: `v${r.fix_version} — deploy date has passed, still marked Planned`,
+        why: "If it is shipped, set the status to Deployed so it counts toward the semester.",
         href: "/releases",
       });
   });
@@ -109,8 +110,8 @@ export default function OverviewPage() {
       icon: "🧩",
       cat: "Data",
       prio: 2,
-      what: `${orphan} story belum punya epic`,
-      why: "Story point-nya nggak kehitung ke epic manapun.",
+      what: `${orphan} stories without an epic`,
+      why: "Their story points are not counted toward any epic.",
       href: "/stories",
     });
 
@@ -121,8 +122,8 @@ export default function OverviewPage() {
         icon: "🗓️",
         cat: "Data",
         prio: 2,
-        what: `${e.name} — belum punya tanggal sama sekali`,
-        why: "Epic tanpa start date dan tanpa story bertanggal nggak masuk hitungan semester manapun.",
+        what: `${e.name} — has no dates at all`,
+        why: "An epic with no start date and no dated stories will not count toward any semester.",
         href: "/epics",
       })
     );
@@ -131,10 +132,10 @@ export default function OverviewPage() {
     if (!r.folder_url)
       todo.push({
         icon: "🔗",
-        cat: "Dokumentasi",
+        cat: "Documentation",
         prio: 3,
-        what: `v${r.fix_version} — URL folder SharePoint kosong`,
-        why: "Folder ini yang jadi bukti dokumen deployment waktu review KPI.",
+        what: `v${r.fix_version} — SharePoint folder URL is empty`,
+        why: "This folder is the deployment-document evidence during KPI review.",
         href: "/releases",
       });
   });
@@ -152,23 +153,24 @@ export default function OverviewPage() {
     <div>
       <PageHead
         title="Overview"
+        sub={`Today\u2019s delivery snapshot \u2014 active sprint, velocity, and what needs follow-up.`}
       />
 
       <ErrorBar msg={error} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Metric v={ongoingEpics.length} k={`Pending Epics · S${sem.half}`} icon="📦" />
-        <Metric v={inDev.length} k="Stories In Dev" icon="🔨" />
-        <Metric v={velocity.avg} k="Average Velocity" icon="⚡" />
-        <Metric v={kpi.epicsDone.length} k={`Completed Epic · S${sem.half}`} icon="🏆" accent />
+        <Metric v={ongoingEpics.length} k={`Unfinished · S${sem.half}`} icon="📦" />
+        <Metric v={inDev.length} k="Story in dev" icon="🔨" />
+        <Metric v={velocity.avg} k="Avg velocity" icon="⚡" />
+        <Metric v={kpi.epicsDone.length} k={`Epics done · S${sem.half}`} icon="🏆" accent />
         <Metric v={data.stories.filter((s) => s.progress === "Done" && s.release_status !== "Deployed").length}
-          k="Awaiting Deployment" icon="🚢" />
+          k="Awaiting deploy" icon="🚢" />
       </div>
 
       {/* Sprint aktif + velocity: dua hal yang paling sering ditanya waktu standup */}
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <section className="rounded-2xl border border-mist-200 bg-white p-5 shadow-card">
-          <Label>Active Sprint</Label>
+          <Label>Active sprint</Label>
           {sprintInfo ? (
             <>
               <div className="mt-1 flex items-baseline gap-2">
@@ -177,24 +179,24 @@ export default function OverviewPage() {
               <div className="mt-3">
                 <Progress pct={sprintInfo.pts ? (sprintInfo.donePts / sprintInfo.pts) * 100 : 0} />
                 <div className="mt-1.5 font-mono text-[11px] text-mist-600">
-                  {sprintInfo.donePts} of {sprintInfo.pts} story points completed
+                  {sprintInfo.donePts}/{sprintInfo.pts} points done
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-ink-700">
-                <span>⚪ Todo <b className="font-mono">{sprintInfo.todo}</b></span>
-                <span>🔨 In Dev <b className="font-mono">{sprintInfo.dev}</b></span>
-                <span>✅ Done <b className="font-mono">{sprintInfo.done}</b></span>
+                <span className="inline-flex items-center gap-1"><Icon name="circle" className="h-3.5 w-3.5 text-mist-400" />Todo <b className="font-mono">{sprintInfo.todo}</b></span>
+                <span className="inline-flex items-center gap-1"><Icon name="hammer" className="h-3.5 w-3.5 text-sun-600" />In Dev <b className="font-mono">{sprintInfo.dev}</b></span>
+                <span className="inline-flex items-center gap-1"><Icon name="done" className="h-3.5 w-3.5 text-ocean-600" />Done <b className="font-mono">{sprintInfo.done}</b></span>
               </div>
             </>
           ) : (
-            <p className="mt-3 text-sm text-mist-600">Belum ada story yang punya nomor sprint.</p>
+            <p className="mt-3 text-sm text-mist-600">No stories have a sprint number yet.</p>
           )}
         </section>
 
         <section className="rounded-2xl border border-mist-200 bg-white p-5 shadow-card lg:col-span-2">
           <div className="flex items-center justify-between">
-            <Label>Sprint Velocity</Label>
-            <span className="font-mono text-[11px] text-mist-600">avg velocity: {velocity.avg} points</span>
+            <Label>Velocity — story point done per sprint</Label>
+            <span className="font-mono text-[11px] text-mist-600">avg {velocity.avg} pt</span>
           </div>
 
           {velocity.rows.length ? (
@@ -228,7 +230,7 @@ export default function OverviewPage() {
             </div>
           ) : (
             <p className="mt-3 text-sm text-mist-600">
-              Belum ada story Done dengan nomor sprint. Tarik dari Jira dulu.
+              No Done stories with a sprint number yet. Pull from Jira first.
             </p>
           )}
         </section>
@@ -237,7 +239,7 @@ export default function OverviewPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-5">
           <div>
-            <h2 className="mb-2 text-base font-semibold">📦 Active Epics</h2>
+            <h2 className="mb-2 text-base font-semibold">Unfinished epics</h2>
             <Card scroll offset="26rem">
               <table className="w-full border-collapse">
                 <thead>
@@ -274,7 +276,7 @@ export default function OverviewPage() {
                     );
                   })}
                   {ongoingEpics.length === 0 && (
-                    <EmptyRow cols={5} icon="🎉" msg="Semua epic di semester ini sudah selesai." />
+                    <EmptyRow cols={5} icon="🎉" msg="All epics this semester are done." />
                   )}
                 </tbody>
               </table>
@@ -282,16 +284,16 @@ export default function OverviewPage() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-base font-semibold">🚀 Release Pipeline</h2>
+            <h2 className="mb-2 text-base font-semibold">Release queue</h2>
             <Card scroll offset="26rem">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
                     <Th className="w-28">Fix version</Th>
-                    <Th className="w-32">Planned deployment</Th>
-                    <Th className="w-24 text-right">Stories</Th>
-                    <Th className="w-24 text-right">Story points</Th>
-                    <Th>Release status</Th>
+                    <Th className="w-32">Target deploy</Th>
+                    <Th className="w-24 text-right">Story</Th>
+                    <Th className="w-24 text-right">Point</Th>
+                    <Th>Status</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -313,7 +315,7 @@ export default function OverviewPage() {
                     </tr>
                   ))}
                   {pipeline.length === 0 && (
-                    <EmptyRow cols={5} icon="🚀" msg="Nggak ada story yang lagi nunggu release." />
+                    <EmptyRow cols={5} icon="🚀" msg="No stories waiting for release." />
                   )}
                 </tbody>
               </table>
@@ -323,7 +325,7 @@ export default function OverviewPage() {
 
         <section>
           <h2 className="mb-2 text-base font-semibold">
-            🧹 Action Required {todo.length > 0 && <span className="text-mist-400">({todo.length})</span>}
+            Needs attention {todo.length > 0 && <span className="text-mist-400">({todo.length})</span>}
           </h2>
           <div className="space-y-2">
             {todo.slice(0, 12).map((t, i) => (
@@ -333,7 +335,7 @@ export default function OverviewPage() {
                 className={`block rounded-xl border border-l-4 border-mist-200 bg-white p-3 shadow-card transition hover:border-mist-400 ${catTone[t.prio].edge}`}
               >
                 <div className="flex gap-2">
-                  <span>{t.icon}</span>
+                  <span className="mt-0.5 text-mist-500"><Ic e={t.icon} className="h-4 w-4" /></span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${catTone[t.prio].pill}`}>
@@ -348,11 +350,11 @@ export default function OverviewPage() {
             ))}
             {todo.length === 0 && (
               <div className="rounded-xl border border-dashed border-mist-200 bg-white p-6 text-center">
-                <div className="text-2xl">✨</div>
-                <p className="mt-2 text-sm text-mist-600">Bersih — dokumen lengkap, tanggal terisi, flag konsisten.</p>
+                <div className="flex justify-center text-mist-400"><Icon name="sparkles" className="h-7 w-7" /></div>
+                <p className="mt-2 text-sm text-mist-600">All clear — docs complete, dates filled, flags consistent.</p>
               </div>
             )}
-            {todo.length > 12 && <p className="px-1 text-xs text-mist-400">+{todo.length - 12} lagi</p>}
+            {todo.length > 12 && <p className="px-1 text-xs text-mist-400">+{todo.length - 12} more</p>}
           </div>
         </section>
       </div>

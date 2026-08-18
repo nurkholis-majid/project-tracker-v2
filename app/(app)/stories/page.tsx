@@ -8,13 +8,14 @@ import {
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 type SortKey = "epic" | "sprint" | "point" | "judul";
 
 const SORTS = [
-  { value: "epic",   label: "📦 Epic" },
-  { value: "sprint", label: "🏃 Sprint" },
-  { value: "judul",  label: "🔤 Judul" },
+  { value: "epic",   label: "Epic" },
+  { value: "sprint", label: "Sprint" },
+  { value: "judul",  label: "Title" },
 ];
 
 /** Story yang belum kelar naik ke atas; yang Done turun ke bawah. */
@@ -140,7 +141,7 @@ export default function StoriesPage() {
         />
       </Td>
       <Td>
-        <RowActions onEdit={() => setForm(s)} onDelete={() => confirm(`Hapus story "${s.title}"?`) && remove("stories", s.id)} />
+        <RowActions onEdit={() => setForm(s)} onDelete={() => confirm(`Delete story "${s.title}"?`) && remove("stories", s.id)} />
       </Td>
     </tr>
   );
@@ -164,15 +165,15 @@ export default function StoriesPage() {
       <PageHead
         title="Story"
       >
-        <input className={filterCls + " w-52"} placeholder="🔍 Cari story / DLB-…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className={filterCls + " w-52"} placeholder="Search stories / DLB-…" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select w="w-52" value={epicF} onChange={setEpicF}
           options={[
-            { value: "all", label: "Semua epic" },
-            { value: "none", label: "⚠️ Belum punya epic" },
+            { value: "all", label: "All epics" },
+            { value: "none", label: "No epic" },
             ...data.epics.map((e) => ({ value: e.id, label: e.name })),
           ]} />
         <Select w="w-40" value={progF} onChange={setProgF}
-          options={[{ value: "all", label: "Semua progress" }, ...optionsOf(STORY_PROGRESS)]} />
+          options={[{ value: "all", label: "All progress" }, ...optionsOf(STORY_PROGRESS)]} />
         <Select w="w-48" value={sort} onChange={(v) => setSort(v as SortKey)} options={SORTS} />
         <Btn tone="accent" onClick={() => setForm(blank())}>+ Story</Btn>
       </PageHead>
@@ -194,11 +195,11 @@ export default function StoriesPage() {
                       <td colSpan={9} className="border-b border-mist-200 bg-ink-900 p-0">
                         <button onClick={() => toggleGroup(g.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-ink-800">
                           <span className="font-mono text-xs text-sky-400">{open ? "▾" : "▸"}</span>
-                          <span className="text-sm font-semibold text-white">
-                            {g.epic ? `📦 ${g.epic.name}` : "⚠️ Belum punya epic"}
+                          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+                            {g.epic ? <><Icon name="epic" className="h-4 w-4" /> {g.epic.name}</> : <><Icon name="warn" className="h-4 w-4" /> No epic</>}
                           </span>
                           <span className="font-mono text-[10px] text-sky-200/70">
-                            {g.stories.length} story · {done}/{pts} pt
+                            {g.stories.length} stories · {done}/{pts} pt
                           </span>
                           <span className="ml-auto w-32">
                             <Progress pct={pts ? (done / pts) * 100 : 0} tone="bg-sun-500" />
@@ -213,25 +214,25 @@ export default function StoriesPage() {
 
             {sort !== "epic" && flat.map((s) => <Row key={s.id} s={s} />)}
 
-            {filtered.length === 0 && <EmptyRow cols={9} icon="📝" msg="Nggak ada story yang cocok dengan filter ini." />}
+            {filtered.length === 0 && <EmptyRow cols={9} icon="📝" msg="No stories match this filter." />}
           </tbody>
         </table>
       </Card>
 
       {form && (
-        <Modal title={form.id ? "Ubah story" : "Story baru"} onClose={() => setForm(null)} wide>
+        <Modal title={form.id ? "Edit story" : "New story"} onClose={() => setForm(null)} wide>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Epic">
                 <Select full value={form.epic_id ?? ""} onChange={(v) => setForm({ ...form, epic_id: v || null })}
-                  options={[{ value: "", label: "— belum di-set —" }, ...data.epics.map((e) => ({ value: e.id, label: e.name }))]} />
+                  options={[{ value: "", label: "— not set —" }, ...data.epics.map((e) => ({ value: e.id, label: e.name }))]} />
               </Field>
-              <Field label="Task list (grup)" hint="Opsional. Contoh: Appraisal Portal Phase 0: Base Feature">
+              <Field label="Task list (group)" hint="Optional. Example: Appraisal Portal Phase 0: Base Feature">
                 <input className={inputCls} value={form.task_group ?? ""} onChange={(e) => setForm({ ...form, task_group: e.target.value })} />
               </Field>
             </div>
 
-            <Field label="Judul story">
+            <Field label="Story title">
               <input className={inputCls} value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </Field>
 
@@ -259,7 +260,7 @@ export default function StoriesPage() {
                 <input type="date" className={inputCls} value={form.start_date ?? ""}
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
               </Field>
-              <Field label="End date" hint="Tanggal ini yang dipakai untuk hitung KPI semester.">
+              <Field label="End date" hint="This date drives the semester KPI calculation.">
                 <input type="date" className={inputCls} value={form.end_date ?? ""}
                   onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
               </Field>
@@ -268,7 +269,7 @@ export default function StoriesPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Fix version">
                 <Select full value={form.release_id ?? ""} onChange={(v) => setForm({ ...form, release_id: v || null })}
-                  options={[{ value: "", label: "— belum masuk release —" }, ...data.releases.map((r) => ({ value: r.id, label: `v${r.fix_version}` }))]} />
+                  options={[{ value: "", label: "— not in a release —" }, ...data.releases.map((r) => ({ value: r.id, label: `v${r.fix_version}` }))]} />
               </Field>
               <Field label="Status release">
                 <Select full value={form.release_status ?? "-"}

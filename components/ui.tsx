@@ -2,14 +2,16 @@
 
 import { JIRA_BROWSE, META, labelOf } from "@/lib/types";
 import { useEffect, type ReactNode } from "react";
+import { Ic, Icon, iconFor } from "./icons";
 
 /* ---------------------------------------------------------------- badge */
 export function Badge({ v }: { v?: string | null }) {
   const key = v ?? "-";
   const m = META[key] ?? { label: key, icon: "•", tone: "bg-mist-100 text-ink-700 ring-mist-200" };
+  const I = iconFor(key);
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${m.tone}`}>
-      {m.icon} {m.label}
+      <I className="h-3 w-3" strokeWidth={2} /> {m.label}
     </span>
   );
 }
@@ -42,7 +44,7 @@ export function StatusSelect({
     >
       {options.map((o) => (
         <option key={o} value={o}>
-          {META[o]?.icon} {labelOf(o)}
+          {labelOf(o)}
         </option>
       ))}
     </select>
@@ -132,7 +134,7 @@ export function Select({
 }
 
 export const optionsOf = (values: readonly string[]) =>
-  values.map((v) => ({ value: v, label: `${META[v]?.icon ?? ""} ${labelOf(v)}`.trim() }));
+  values.map((v) => ({ value: v, label: labelOf(v) }));
 
 /** Pilihan pendek (2–4 opsi) — satu klik, tanpa buka dropdown. */
 export function Segmented({
@@ -168,10 +170,10 @@ export function Stepper({
   return (
     <div className="inline-flex items-center rounded-xl border border-mist-200 bg-white shadow-card">
       <button onClick={() => value > min && onChange(value - 1)} disabled={value <= min}
-        className="rounded-l-xl px-3 py-1.5 text-ink-500 hover:bg-mist-50 disabled:opacity-30" aria-label="Sebelumnya">‹</button>
+        className="rounded-l-xl px-3 py-1.5 text-ink-500 hover:bg-mist-50 disabled:opacity-30" aria-label="Decrease">‹</button>
       <span className="min-w-[3.5rem] px-2 text-center font-mono text-sm font-semibold tabular-nums">{value}</span>
       <button onClick={() => value < max && onChange(value + 1)} disabled={value >= max}
-        className="rounded-r-xl px-3 py-1.5 text-ink-500 hover:bg-mist-50 disabled:opacity-30" aria-label="Berikutnya">›</button>
+        className="rounded-r-xl px-3 py-1.5 text-ink-500 hover:bg-mist-50 disabled:opacity-30" aria-label="Increase">›</button>
     </div>
   );
 }
@@ -197,8 +199,8 @@ export function Modal({
             <h3 className="text-base font-semibold text-ink-900">{title}</h3>
             {subtitle && <p className="mt-0.5 text-xs text-mist-600">{subtitle}</p>}
           </div>
-          <button onClick={onClose} aria-label="Tutup"
-            className="rounded-lg px-2 py-1 text-mist-400 hover:bg-mist-50 hover:text-ink-900">✕</button>
+          <button onClick={onClose} aria-label="Close"
+            className="rounded-lg px-2 py-1 text-mist-400 hover:bg-mist-50 hover:text-ink-900"><Icon name="close" className="h-4 w-4" /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -206,11 +208,11 @@ export function Modal({
   );
 }
 
-export const FormActions = ({ onClose, onSave, saveLabel = "Simpan" }: {
+export const FormActions = ({ onClose, onSave, saveLabel = "Save" }: {
   onClose: () => void; onSave: () => void; saveLabel?: string;
 }) => (
   <div className="flex justify-end gap-2 border-t border-mist-100 pt-4">
-    <Btn onClick={onClose}>Batal</Btn>
+    <Btn onClick={onClose}>Cancel</Btn>
     <Btn tone="solid" onClick={onSave}>{saveLabel}</Btn>
   </div>
 );
@@ -255,7 +257,7 @@ export const ROW = "transition-colors hover:bg-mist-50";
 export const EmptyRow = ({ cols, msg, icon = "🗂️" }: { cols: number; msg: string; icon?: string }) => (
   <tr>
     <td colSpan={cols} className="px-3 py-14 text-center">
-      <div className="text-2xl">{icon}</div>
+      <div className="flex justify-center text-mist-400"><Ic e={icon} className="h-8 w-8" strokeWidth={1.6} /></div>
       <p className="mt-2 text-sm text-mist-600">{msg}</p>
     </td>
   </tr>
@@ -263,10 +265,10 @@ export const EmptyRow = ({ cols, msg, icon = "🗂️" }: { cols: number; msg: s
 
 export const RowActions = ({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) => (
   <div className="flex gap-1">
-    <button onClick={onEdit} title="Ubah"
-      className="rounded-md px-2 py-1 text-xs text-mist-600 hover:bg-mist-50 hover:text-ocean-600">✏️</button>
-    <button onClick={onDelete} title="Hapus"
-      className="rounded-md px-2 py-1 text-xs text-mist-400 hover:bg-alert-100 hover:text-alert-600">🗑️</button>
+    <button onClick={onEdit} title="Edit"
+      className="rounded-md px-2 py-1 text-mist-600 hover:bg-mist-50 hover:text-ocean-600"><Icon name="edit" className="h-4 w-4" /></button>
+    <button onClick={onDelete} title="Delete"
+      className="rounded-md px-2 py-1 text-mist-400 hover:bg-alert-100 hover:text-alert-600"><Icon name="trash" className="h-4 w-4" /></button>
   </div>
 );
 
@@ -310,7 +312,7 @@ export function Metric({ v, k, icon, accent }: { v: number | string; k: string; 
     <div className={`rounded-xl border p-4 shadow-card ${accent ? "border-sun-300 bg-sun-100" : "border-mist-200 bg-white"}`}>
       <div className="flex items-baseline gap-2">
         <span className={`text-3xl font-semibold tabular-nums ${accent ? "text-sun-700" : "text-ink-900"}`}>{v}</span>
-        {icon && <span className="text-lg">{icon}</span>}
+        {icon && <Ic e={icon} className={`h-5 w-5 self-center ${accent ? "text-sun-700" : "text-mist-400"}`} />}
       </div>
       <div className={`mt-1 text-[10px] font-semibold uppercase tracking-widest ${accent ? "text-sun-700" : "text-mist-600"}`}>{k}</div>
     </div>
@@ -326,13 +328,13 @@ export const Progress = ({ pct, tone = "bg-ocean-600" }: { pct: number; tone?: s
 export const ErrorBar = ({ msg }: { msg: string }) =>
   msg ? (
     <div className="mb-4 flex items-start gap-2 rounded-xl border border-alert-200 bg-alert-100 px-3 py-2 text-sm text-alert-600">
-      <span>⚠️</span><span>{msg}</span>
+      <Icon name="warn" className="mt-0.5 h-4 w-4 shrink-0" /><span>{msg}</span>
     </div>
   ) : null;
 
 export const Loading = () => (
   <div className="flex h-64 flex-col items-center justify-center gap-2 text-mist-400">
     <div className="h-6 w-6 animate-spin rounded-full border-2 border-mist-200 border-t-ocean-600" />
-    <p className="text-sm">Memuat data…</p>
+    <p className="text-sm">Loading…</p>
   </div>
 );

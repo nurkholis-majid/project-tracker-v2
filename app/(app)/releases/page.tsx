@@ -9,6 +9,7 @@ import {
   Badge, Btn, ErrorBar, Field, FormActions, JiraLink, Label, Loading, Modal, PageHead,
   RowActions, Select, StatusSelect, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 const blank = (): Partial<Release> => ({
   fix_version: "", deploy_date: null, folder_url: "", status: "Planned", notes: "",
@@ -40,7 +41,7 @@ export default function ReleasesPage() {
           w="w-48"
           value={filter}
           onChange={setFilter}
-          options={[{ value: "all", label: "Semua release" }, ...optionsOf(DEPLOY_STATUS)]}
+          options={[{ value: "all", label: "All releases" }, ...optionsOf(DEPLOY_STATUS)]}
         />
         <Btn tone="accent" onClick={() => setForm(blank())}>+ Fix version</Btn>
       </PageHead>
@@ -66,32 +67,32 @@ export default function ReleasesPage() {
                     />
                   </div>
                   <div className="mt-1 font-mono text-xs text-mist-600">
-                    {r.deploy_date ? `${r.status === "Deployed" ? "Deployed" : "Rencana"} ${fmt(r.deploy_date)}` : "Tanggal deploy belum diisi"}
-                    {" · "}{stories.length} story · {pts} pt
+                    {r.deploy_date ? `${r.status === "Deployed" ? "Deployed" : "Planned"} ${fmt(r.deploy_date)}` : "Deploy date not set"}
+                    {" · "}{stories.length} stories · {pts} pt
                   </div>
                 </div>
                 <RowActions
                   onEdit={() => setForm(r)}
-                  onDelete={() => confirm(`Hapus release v${r.fix_version}?`) && remove("releases", r.id)}
+                  onDelete={() => confirm(`Delete release v${r.fix_version}?`) && remove("releases", r.id)}
                 />
               </div>
 
               <div className="space-y-4 px-5 py-4">
                 <div>
-                  <Label>Folder dokumen (TAT, QCR, DR, dll.)</Label>
+                  <Label>Document folder (TAT, QCR, DR, etc.)</Label>
                   {r.folder_url ? (
                     <a href={r.folder_url} target="_blank" rel="noreferrer"
                       className="mt-1 block truncate text-xs text-ocean-600 underline underline-offset-2">
-                      🔗 {r.folder_url}
+                      <span className="inline-flex items-center gap-1"><Icon name="link" className="h-3.5 w-3.5" /> {r.folder_url}</span>
                     </a>
                   ) : (
-                    <p className="mt-1 text-xs text-sun-600">⚠️ URL folder SharePoint belum diisi</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-sun-600"><Icon name="warn" className="h-3.5 w-3.5" /> SharePoint folder URL not set</p>
                   )}
                 </div>
 
                 <div>
                   <div className="mb-1 flex items-center justify-between gap-2">
-                    <Label>Story di release ini</Label>
+                    <Label>Stories in this release</Label>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-mist-400">{deployed}/{stories.length} deployed</span>
                       <button
@@ -113,13 +114,13 @@ export default function ReleasesPage() {
                     ))}
                     {stories.length === 0 && (
                       <p className="px-3 py-6 text-center text-xs text-mist-400">
-                        Belum ada story. Klik <b>+ Story</b> untuk memilih.
+                        No stories yet. Click <b>+ Story</b> to choose.
                       </p>
                     )}
                   </div>
                 </div>
 
-                {r.notes && <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-ink-700">📌 {r.notes}</p>}
+                {r.notes && <p className="flex items-start gap-2 rounded-xl bg-mist-50 px-3 py-2 text-xs text-ink-700"><Icon name="pin" className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{r.notes}</span></p>}
               </div>
             </div>
           );
@@ -127,8 +128,8 @@ export default function ReleasesPage() {
 
         {rows.length === 0 && (
           <div className="rounded-2xl border border-dashed border-mist-200 bg-white p-10 text-center lg:col-span-2">
-            <div className="text-3xl">🚀</div>
-            <p className="mt-2 text-sm text-mist-600">Belum ada fix version di filter ini.</p>
+            <div className="flex justify-center text-mist-400"><Icon name="release" className="h-8 w-8" /></div>
+            <p className="mt-2 text-sm text-mist-600">No fix versions in this filter.</p>
           </div>
         )}
       </div>
@@ -149,8 +150,8 @@ export default function ReleasesPage() {
 
       {form && (
         <Modal
-          title={form.id ? `Ubah release v${form.fix_version}` : "Fix version baru"}
-          subtitle="Dokumen tetap di SharePoint — di sini cukup satu URL folder-nya."
+          title={form.id ? `Edit release v${form.fix_version}` : "New fix version"}
+          subtitle="Documents stay in SharePoint \u2014 just one folder URL here."
           onClose={() => setForm(null)}
         >
           <div className="space-y-4">
@@ -159,7 +160,7 @@ export default function ReleasesPage() {
                 <input className={inputCls + " font-mono"} value={form.fix_version ?? ""}
                   onChange={(e) => setForm({ ...form, fix_version: e.target.value })} placeholder="1.13.0" />
               </Field>
-              <Field label="Tanggal deploy">
+              <Field label="Deploy date">
                 <input type="date" className={inputCls} value={form.deploy_date ?? ""}
                   onChange={(e) => setForm({ ...form, deploy_date: e.target.value })} />
               </Field>
@@ -169,7 +170,7 @@ export default function ReleasesPage() {
               </Field>
             </div>
 
-            <Field label="URL folder SharePoint" hint="Satu folder berisi semua dokumen deployment versi ini.">
+            <Field label="SharePoint folder URL" hint="One folder holding all deployment documents for this version.">
               <input className={inputCls} value={form.folder_url ?? ""}
                 onChange={(e) => setForm({ ...form, folder_url: e.target.value })}
                 placeholder="https://…/00. Done Deploy/1.13.0" />
@@ -255,7 +256,7 @@ function StoryPicker({
           release_status: release.status === "Deployed" ? "Deployed" : "Merging to UAT",
         })
         .in("id", add);
-      if (error) { setBusy(false); return onError("Gagal menambahkan story: " + error.message); }
+      if (error) { setBusy(false); return onError("Failed to add stories: " + error.message); }
     }
 
     // Yang dilepas kembali jadi belum masuk release manapun.
@@ -264,7 +265,7 @@ function StoryPicker({
         .from("stories")
         .update({ release_id: null, release_status: "-" })
         .in("id", drop);
-      if (error) { setBusy(false); return onError("Gagal melepas story: " + error.message); }
+      if (error) { setBusy(false); return onError("Failed to detach stories: " + error.message); }
     }
 
     setBusy(false);
@@ -274,25 +275,25 @@ function StoryPicker({
   return (
     <Modal
       wide
-      title={`Story untuk v${release.fix_version}`}
-      subtitle="Centang story yang masuk versi ini. Hilangkan centang untuk melepasnya."
+      title={`Stories for v${release.fix_version}`}
+      subtitle="Check the stories that belong to this version. Uncheck to detach them."
       onClose={onClose}
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <input className={filterCls + " w-64"} placeholder="🔍 Cari story / DLB-…"
+          <input className={filterCls + " w-64"} placeholder="Search stories / DLB-…"
             value={q} onChange={(e) => setQ(e.target.value)} />
           <Select
             w="w-56"
             value={scope}
             onChange={setScope}
             options={[
-              { value: "free", label: "Belum masuk release" },
-              { value: "done", label: "✅ Done & belum masuk release" },
-              { value: "all", label: "Semua story" },
+              { value: "free", label: "Not in a release" },
+              { value: "done", label: "Done & not in a release" },
+              { value: "all", label: "All stories" },
             ]}
           />
-          <span className="ml-auto text-sm text-mist-600">{picked.size} dipilih</span>
+          <span className="ml-auto text-sm text-mist-600">{picked.size} selected</span>
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-mist-200">
@@ -310,14 +311,14 @@ function StoryPicker({
                 <span className={`grid h-4 w-4 shrink-0 place-items-center rounded border text-[10px] ${
                   on ? "border-ocean-600 bg-ocean-600 text-white" : "border-mist-200"
                 }`}>
-                  {on ? "✓" : ""}
+                  {on ? <Icon name="check" className="h-3 w-3" strokeWidth={3} /> : ""}
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-ink-900">{s.title}</span>
                   <span className="block truncate text-xs text-mist-400">
-                    {epicName(s.epic_id) ?? "tanpa epic"} · sprint {s.sprint ?? "—"} · {s.story_points ?? 0} pt
-                    {elsewhere && " · sudah di versi lain"}
+                    {epicName(s.epic_id) ?? "no epic"} · sprint {s.sprint ?? "—"} · {s.story_points ?? 0} pt
+                    {elsewhere && " · already in another version"}
                   </span>
                 </span>
 
@@ -327,14 +328,14 @@ function StoryPicker({
             );
           })}
           {list.length === 0 && (
-            <p className="px-3 py-10 text-center text-sm text-mist-400">Nggak ada story yang cocok.</p>
+            <p className="px-3 py-10 text-center text-sm text-mist-400">No stories match.</p>
           )}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-mist-100 pt-4">
-          <Btn onClick={onClose}>Batal</Btn>
+          <Btn onClick={onClose}>Cancel</Btn>
           <Btn tone="solid" onClick={submit} disabled={busy}>
-            {busy ? "Menyimpan…" : "Simpan"}
+            {busy ? "Saving…" : "Save"}
           </Btn>
         </div>
       </div>

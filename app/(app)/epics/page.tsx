@@ -9,14 +9,15 @@ import {
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 type SortKey = "baru" | "nama" | "point" | "deadline";
 
 const SORTS: { value: SortKey; label: string }[] = [
-  { value: "baru",     label: "🕘 Terbaru dibuat" },
-  { value: "deadline", label: "⏰ End date terdekat" },
-  { value: "point",    label: "🔢 Story point terbanyak" },
-  { value: "nama",     label: "🔤 Nama A–Z" },
+  { value: "baru",     label: "Newest" },
+  { value: "deadline", label: "Nearest end date" },
+  { value: "point",    label: "Most story points" },
+  { value: "nama",     label: "Name A–Z" },
 ];
 
 const blank = (): Partial<Epic> => ({
@@ -67,7 +68,7 @@ export default function EpicsPage() {
       >
         <input
           className={filterCls + " w-56"}
-          placeholder="🔍 Cari epic / DLB-…"
+          placeholder="Search epics / DLB-…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -75,7 +76,7 @@ export default function EpicsPage() {
           w="w-44"
           value={status}
           onChange={setStatus}
-          options={[{ value: "all", label: "Semua status" }, ...optionsOf(EPIC_STATUS)]}
+          options={[{ value: "all", label: "All statuses" }, ...optionsOf(EPIC_STATUS)]}
         />
         <Select
           w="w-52"
@@ -117,7 +118,7 @@ export default function EpicsPage() {
                       {e.name}
                     </button>
                     <div className="mt-0.5 text-xs text-mist-400">
-                      {st.done}/{st.total} story · {st.donePoints}/{st.points} pt · klik untuk lihat story-nya
+                      {st.done}/{st.total} stories · {st.donePoints}/{st.points} pt · click to see its stories
                     </div>
                   </Td>
                   <Td><JiraLink k={e.jira_key} /></Td>
@@ -136,14 +137,14 @@ export default function EpicsPage() {
                     {e.start_date ? (
                       fmt(e.start_date)
                     ) : win.start ? (
-                      <span className="text-mist-400" title="Diturunkan dari tanggal story">{fmt(win.start)} · auto</span>
+                      <span className="text-mist-400" title="Derived from story dates">{fmt(win.start)} · auto</span>
                     ) : (
-                      <span className="text-sun-600">⚠️ kosong</span>
+                      <span className="inline-flex items-center gap-1 text-sun-600"><Icon name="warn" className="h-3.5 w-3.5" /> none</span>
                     )}
                   </Td>
                   <Td className="font-mono text-xs">
                     {e.end_date ? fmt(e.end_date)
-                      : win.end ? <span className="text-mist-400" title="Diturunkan dari tanggal story">{fmt(win.end)} · auto</span>
+                      : win.end ? <span className="text-mist-400" title="Derived from story dates">{fmt(win.end)} · auto</span>
                       : "—"}
                   </Td>
                   <Td className="font-mono text-xs">{fmt(e.est_deploy)}</Td>
@@ -151,7 +152,7 @@ export default function EpicsPage() {
                     <RowActions
                       onEdit={() => setForm(e)}
                       onDelete={() =>
-                        confirm(`Hapus epic "${e.name}"? Story-nya tetap ada, cuma lepas dari epic ini.`) &&
+                        confirm(`Delete epic "${e.name}"? Its stories stay, they just detach from this epic.`) &&
                         remove("epics", e.id)
                       }
                     />
@@ -160,7 +161,7 @@ export default function EpicsPage() {
               );
             })}
             {rows.length === 0 && (
-              <EmptyRow cols={8} icon="📦" msg="Nggak ada epic yang cocok. Coba ubah kata kunci atau filternya." />
+              <EmptyRow cols={8} icon="📦" msg="No epics match. Try changing the keyword or filter." />
             )}
           </tbody>
         </table>
@@ -179,12 +180,12 @@ export default function EpicsPage() {
 
       {form && (
         <Modal
-          title={form.id ? "Ubah epic" : "Epic baru"}
-          subtitle="Start & end date menentukan epic ini masuk hitungan semester yang mana."
+          title={form.id ? "Edit epic" : "New epic"}
+          subtitle="Start and end dates decide which semester this epic counts toward."
           onClose={() => setForm(null)}
         >
           <div className="space-y-4">
-            <Field label="Nama epic">
+            <Field label="Epic name">
               <input className={inputCls} value={form.name ?? ""}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="[New Customer] Appraisal Web - Phase 0 : Base Feature" />
@@ -220,10 +221,10 @@ export default function EpicsPage() {
               </Field>
             </div>
 
-            <Field label="Notes" hint="Perubahan scope, keputusan rapat — hal yang bakal lupa 3 bulan lagi.">
+            <Field label="Notes" hint="Scope changes, meeting decisions \u2014 things you\u2019ll forget in 3 months.">
               <textarea rows={3} className={inputCls} value={form.notes ?? ""}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder='21 Jan: nama menu diubah jadi "Customer Claim"' />
+                placeholder='Jan 21: menu renamed to "Customer Claim"' />
             </Field>
 
             <FormActions onClose={() => setForm(null)} onSave={submit} />
@@ -268,12 +269,12 @@ function EpicDetail({
           <Badge v={epic.status} />
           <JiraLink k={epic.jira_key} />
           <div className="ml-auto flex gap-2">
-            <Btn onClick={onEdit}>✏️ Ubah epic</Btn>
+            <Btn onClick={onEdit}><span className="inline-flex items-center gap-1.5"><Icon name="edit" className="h-4 w-4" /> Edit epic</span></Btn>
           </div>
         </div>
 
         {epic.notes && (
-          <div className="rounded-xl bg-sun-100 px-3 py-2 text-sm text-ink-700">📌 {epic.notes}</div>
+          <div className="flex items-start gap-2 rounded-xl bg-sun-100 px-3 py-2 text-sm text-ink-700"><Icon name="pin" className="mt-0.5 h-4 w-4 shrink-0" /> <span>{epic.notes}</span></div>
         )}
 
         <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-mist-200">
@@ -303,7 +304,7 @@ function EpicDetail({
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <EmptyRow cols={6} icon="📝" msg="Epic ini belum punya story." />
+                <EmptyRow cols={6} icon="📝" msg="This epic has no stories yet." />
               )}
             </tbody>
           </table>

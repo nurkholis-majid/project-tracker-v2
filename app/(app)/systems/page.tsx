@@ -7,6 +7,7 @@ import {
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, Loading, Modal,
   PageHead, ROW, RowActions, Select, Td, Th, filterCls, inputCls,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 const shortUrl = (url: string) => {
   try {
@@ -83,21 +84,21 @@ export default function SystemsPage() {
   return (
     <div>
       <PageHead
-        title="Sistem"
-        sub="Daftar website/sistem yang dikembangkan atau berhubungan dengan project, beserta environment, URL, dan kredensialnya."
+        title="Systems"
+        sub="Websites and systems built for or related to the project, with their environments, URLs, and credentials."
       >
-        <input className={filterCls + " w-56"} placeholder="🔍 Cari sistem…" value={q}
+        <input className={filterCls + " w-56"} placeholder="Search systems…" value={q}
           onChange={(e) => setQ(e.target.value)} />
         <Select
           w="w-44"
           value={envF}
           onChange={setEnvF}
           options={[
-            { value: "all", label: "Semua environment" },
+            { value: "all", label: "All environments" },
             ...ENVIRONMENTS.map((e) => ({ value: e, label: e.toUpperCase() })),
           ]}
         />
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ Sistem</Btn>
+        <Btn tone="accent" onClick={() => setForm(blank())}>+ System</Btn>
       </PageHead>
 
       <ErrorBar msg={error} />
@@ -106,8 +107,8 @@ export default function SystemsPage() {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th className="w-52">Nama</Th>
-              <Th>Deskripsi</Th>
+              <Th className="w-52">Name</Th>
+              <Th>Description</Th>
               <Th className="w-36">Environment</Th>
               <Th className="w-56">URL</Th>
               <Th className="w-40">Username</Th>
@@ -136,7 +137,7 @@ export default function SystemsPage() {
                       <a href={s.url} target="_blank" rel="noreferrer"
                         className="block max-w-[14rem] truncate text-xs text-ocean-600 underline underline-offset-2"
                         title={s.url}>
-                        🔗 {shortUrl(s.url)}
+                        <span className="inline-flex items-center gap-1"><Icon name="link" className="h-3.5 w-3.5" /> {shortUrl(s.url)}</span>
                       </a>
                     ) : (
                       <span className="text-xs text-mist-400">—</span>
@@ -150,10 +151,10 @@ export default function SystemsPage() {
                         <button
                           onClick={() => toggleShow(s.id)}
                           className="text-mist-400 hover:text-ocean-600"
-                          title={visible ? "Sembunyikan" : "Tampilkan"}
-                          aria-label={visible ? "Sembunyikan password" : "Tampilkan password"}
+                          title={visible ? "Hide" : "Show"}
+                          aria-label={visible ? "Hide password" : "Show password"}
                         >
-                          {visible ? "🙈" : "👁️"}
+                          {visible ? <Icon name="eyeOff" className="h-4 w-4" /> : <Icon name="eye" className="h-4 w-4" />}
                         </button>
                       </div>
                     ) : (
@@ -163,14 +164,14 @@ export default function SystemsPage() {
                   <Td>
                     <RowActions
                       onEdit={() => { setForm(s); setFormPwVisible(false); }}
-                      onDelete={() => confirm(`Hapus "${s.name}" dari daftar sistem?`) && remove("systems", s.id)}
+                      onDelete={() => confirm(`Remove "${s.name}" from the systems list?`) && remove("systems", s.id)}
                     />
                   </Td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
-              <EmptyRow cols={7} icon="🖥️" msg="Belum ada sistem yang cocok. Tambahkan lewat + Sistem." />
+              <EmptyRow cols={7} icon="🖥️" msg="No systems match. Add one with + System." />
             )}
           </tbody>
         </table>
@@ -178,21 +179,21 @@ export default function SystemsPage() {
 
       {form && (
         <Modal
-          title={form.id ? "Ubah sistem" : "Sistem baru"}
-          subtitle="Catat website/sistem beserta environment dan kredensialnya."
+          title={form.id ? "Edit system" : "New system"}
+          subtitle="Record a website or system with its environments and credentials."
           onClose={() => { setForm(null); setFormPwVisible(false); }}
         >
           <div className="space-y-4">
-            <Field label="Nama sistem">
+            <Field label="System name">
               <input className={inputCls} value={form.name ?? ""}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Admin Portal DLB" />
             </Field>
 
-            <Field label="Deskripsi">
+            <Field label="Description">
               <textarea rows={3} className={inputCls} value={form.description ?? ""}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Portal internal untuk traffic controller dan assign taksasor." />
+                placeholder="Internal portal for traffic controller and appraiser assignment." />
             </Field>
 
             <Field label="URL">
@@ -201,7 +202,7 @@ export default function SystemsPage() {
                 placeholder="https://admin.dlb.internal" />
             </Field>
 
-            <Field label="Environment" hint="Boleh pilih lebih dari satu.">
+            <Field label="Environment" hint="You can pick more than one.">
               <div className="flex gap-2">
                 {ENVIRONMENTS.map((env) => {
                   const on = (form.environments ?? []).includes(env);
@@ -215,7 +216,7 @@ export default function SystemsPage() {
                           : "border-mist-200 bg-white text-mist-600 hover:bg-mist-50"
                       }`}
                     >
-                      {on ? "✓ " : ""}{env.toUpperCase()}
+                      {on && <Icon name="check" className="mr-1 inline h-3.5 w-3.5" strokeWidth={3} />}{env.toUpperCase()}
                     </button>
                   );
                 })}
@@ -240,9 +241,9 @@ export default function SystemsPage() {
                     type="button"
                     onClick={() => setFormPwVisible((v) => !v)}
                     className="absolute inset-y-0 right-2 flex items-center text-mist-400 hover:text-ocean-600"
-                    aria-label={formPwVisible ? "Sembunyikan password" : "Tampilkan password"}
+                    aria-label={formPwVisible ? "Hide password" : "Show password"}
                   >
-                    {formPwVisible ? "🙈" : "👁️"}
+                    {formPwVisible ? <Icon name="eyeOff" className="h-4 w-4" /> : <Icon name="eye" className="h-4 w-4" />}
                   </button>
                 </div>
               </Field>

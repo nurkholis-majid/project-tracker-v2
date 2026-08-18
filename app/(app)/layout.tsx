@@ -4,41 +4,39 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Icon, type IconName } from "@/components/icons";
 
-/**
- * Nav dikelompokkan per fase kerja supaya lebih mudah dipindai.
- * "Carding" ditambahkan di grup Perencanaan — pintu masuk breakdown project.
- */
-const NAV_GROUPS = [
+/** Nav grouped by phase of work so it's easy to scan. */
+const NAV_GROUPS: { section: string; items: { href: string; icon: IconName; label: string }[] }[] = [
   {
-    section: "Ringkasan",
+    section: "Overview",
     items: [
-      { href: "/",        icon: "🏠", label: "Overview" },
-      { href: "/recap",   icon: "🏆", label: "Rekap Semester" },
+      { href: "/",        icon: "home",   label: "Overview" },
+      { href: "/recap",   icon: "trophy", label: "Recap Semester" },
     ],
   },
   {
-    section: "Perencanaan",
+    section: "Planning",
     items: [
-      { href: "/requirements", icon: "📋", label: "Requirements" },
-      { href: "/carding", icon: "🃏", label: "Carding" },
-      { href: "/epics",   icon: "📦", label: "Epic" },
-      { href: "/stories", icon: "📝", label: "Story" },
+      { href: "/requirements", icon: "requirements", label: "Requirements" },
+      { href: "/carding", icon: "carding", label: "Carding" },
+      { href: "/epics",   icon: "epic",   label: "Epic" },
+      { href: "/stories", icon: "story",  label: "Story" },
     ],
   },
   {
     section: "Delivery",
     items: [
-      { href: "/deploy",   icon: "🚢", label: "Need to Deploy" },
-      { href: "/releases", icon: "🚀", label: "Release" },
-      { href: "/flags",    icon: "🚩", label: "Feature Flag" },
+      { href: "/deploy",   icon: "deploy",  label: "Need to Deploy" },
+      { href: "/releases", icon: "release", label: "Release" },
+      { href: "/flags",    icon: "flag",    label: "Feature Flag" },
     ],
   },
   {
-    section: "Referensi",
+    section: "Reference",
     items: [
-      { href: "/systems", icon: "🖥️", label: "Sistem" },
-      { href: "/sync",    icon: "🔄", label: "Jira Sync" },
+      { href: "/systems", icon: "systems", label: "Systems" },
+      { href: "/sync",    icon: "sync",    label: "Jira Sync" },
     ],
   },
 ];
@@ -81,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="flex items-center justify-between gap-3 border-b border-mist-100 px-4 py-3 lg:px-3 lg:py-4">
           <Link href="/" className="flex min-w-0 items-center gap-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ocean-600 text-sm">📊</span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ocean-600 text-white"><Icon name="dashboard" className="h-[18px] w-[18px]" /></span>
             <span className={`min-w-0 truncate text-[15px] font-semibold leading-tight text-ink-900 ${hideOnCollapse}`}>
               Project Tracker
             </span>
@@ -91,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             onClick={signOut}
             className="rounded-lg px-3 py-1.5 text-xs text-ocean-600 hover:bg-mist-50 lg:hidden"
           >
-            Keluar
+            Sign out
           </button>
         </div>
 
@@ -121,7 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         : "text-ink-500 hover:bg-mist-50 hover:text-ink-900"
                     }`}
                   >
-                    <span className="text-base leading-none">{n.icon}</span>
+                    <span className="grid place-items-center"><Icon name={n.icon} className="h-[18px] w-[18px]" /></span>
                     <span className={hideOnCollapse}>{n.label}</span>
                   </Link>
                 );
@@ -134,23 +132,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="hidden border-t border-mist-100 p-2 lg:block">
           <button
             onClick={toggleCollapse}
-            title={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-500 hover:bg-mist-50 hover:text-ink-900 ${
               collapsed ? "justify-center px-2" : ""
             }`}
           >
-            <span className="text-base leading-none">{collapsed ? "»" : "«"}</span>
-            <span className={hideOnCollapse}>Ciutkan</span>
+            <span className="grid place-items-center"><Icon name={collapsed ? "expand" : "collapse"} className="h-[18px] w-[18px]" /></span>
+            <span className={hideOnCollapse}>Collapse</span>
           </button>
           <button
             onClick={signOut}
-            title={collapsed ? "Keluar" : undefined}
+            title={collapsed ? "Sign out" : undefined}
             className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-500 hover:bg-mist-50 hover:text-ink-900 ${
               collapsed ? "justify-center px-2" : ""
             }`}
           >
-            <span className="text-base leading-none">↩︎</span>
-            <span className={hideOnCollapse}>Keluar</span>
+            <span className="grid place-items-center"><Icon name="signout" className="h-[18px] w-[18px]" /></span>
+            <span className={hideOnCollapse}>Sign out</span>
           </button>
         </div>
       </aside>

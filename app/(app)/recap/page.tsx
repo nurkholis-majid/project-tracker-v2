@@ -8,6 +8,7 @@ import {
 import {
   BAR_TONE, Badge, Btn, ErrorBar, Label, Loading, Metric, Progress, Segmented, Stepper,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export default function RecapPage() {
   const { data, loading, error } = useTracker();
@@ -62,16 +63,19 @@ export default function RecapPage() {
       <ErrorBar msg={error} />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric v={kpi.epicsDone.length} k="Completed Epics" icon="🏆" accent />
-        <Metric v={ongoing.length} k="Open Epics" icon="📦" />
-        <Metric v={kpi.releases.length} k="Production Releases" icon="🚀" />
-        <Metric v={kpi.pointsDone} k={`Story points · ${kpi.storiesDone.length} story`} icon="🔢" />
+        <Metric v={kpi.epicsDone.length} k="Epics done" icon="🏆" accent />
+        <Metric v={ongoing.length} k="Unfinished" icon="📦" />
+        <Metric v={kpi.releases.length} k="Production releases" icon="🚀" />
+        <Metric v={kpi.pointsDone} k={`Story points · ${kpi.storiesDone.length} stories`} icon="🔢" />
       </div>
 
       {/* Timeline epic */}
       <section className="mb-5 rounded-2xl border border-mist-200 bg-white shadow-card">
         <div className="border-b border-mist-100 px-5 py-4">
-          <h2 className="text-base font-semibold">📦 Epic Delivery Timeline</h2>
+          <h2 className="text-base font-semibold">Epics this semester</h2>
+          <p className="mt-0.5 text-sm text-mist-600">
+            Epics without a manual start date are dated from their stories, so they still count.
+          </p>
         </div>
 
         <div className="px-5 py-4">
@@ -96,21 +100,21 @@ export default function RecapPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium text-ink-900">{e.name}</span>
                       <Badge v={e.status} />
-                      {/* Penanda selesai/berjalan — konsisten dengan angka di kartu & rekap. */}
+                      {/* Done / in-progress marker — same source as the numbers in the cards and recap. */}
                       {done ? (
-                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-600 ring-1 ring-inset ring-sky-200">
-                          ✓ Completed
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-600 ring-1 ring-inset ring-sky-200">
+                          <Icon name="check" className="h-3 w-3" strokeWidth={2.5} /> Done
                         </span>
                       ) : (
                         <span className="rounded-full bg-sun-100 px-2 py-0.5 text-[10px] font-semibold text-sun-700 ring-1 ring-inset ring-sun-300">
-                          In Progress
+                          In progress
                         </span>
                       )}
                       {versionsOf(e.id).map((v) => (
                         <span key={v} className="rounded-full bg-ocean-100 px-2 py-0.5 font-mono text-[10px] text-ocean-600">v{v}</span>
                       ))}
                       {e.win.derived && (
-                        <span className="rounded-full bg-mist-100 px-2 py-0.5 text-[10px] text-mist-600" title="Tanggal diturunkan dari story">
+                        <span className="rounded-full bg-mist-100 px-2 py-0.5 text-[10px] text-mist-600" title="Dates derived from stories">
                           auto
                         </span>
                       )}
@@ -141,9 +145,9 @@ export default function RecapPage() {
 
             {kpi.epicsRunning.length === 0 && (
               <div className="py-10 text-center">
-                <div className="text-2xl">🗓️</div>
+                <div className="flex justify-center text-mist-400"><Icon name="calendar" className="h-7 w-7" /></div>
                 <p className="mt-2 text-sm text-mist-600">
-                  Belum ada epic di periode ini. Isi start date di menu Epic, atau pastikan story-nya punya tanggal.
+                  No epics in this period. Set a start date on the Epic page, or make sure their stories have dates.
                 </p>
               </div>
             )}
@@ -155,18 +159,21 @@ export default function RecapPage() {
       <section className="rounded-2xl border border-mist-200 bg-white shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-mist-100 px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold">📋 Executive Summary</h2>
+            <h2 className="text-base font-semibold">Recap ready to share</h2>
+            <p className="mt-0.5 text-sm text-mist-600">
+              A summary of this semester\u2019s achievements \u2014 copy it straight into an email or deck.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Segmented
               value={format}
               onChange={(v) => setFormat(v as RecapFormat)}
               options={[
-                { value: "text", label: "Teks" },
+                { value: "text", label: "Text" },
                 { value: "markdown", label: "Markdown" },
               ]}
             />
-            <Btn tone="accent" onClick={copy}>{copied ? "✓ Tersalin" : "📋 Salin"}</Btn>
+            <Btn tone="accent" onClick={copy}>{copied ? "Copied" : "Copy"}</Btn>
           </div>
         </div>
 
@@ -175,31 +182,31 @@ export default function RecapPage() {
           <div className="rounded-xl border border-ocean-200 bg-ocean-100 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-ocean-700">Highlight</div>
             <p className="mt-2 text-sm leading-relaxed text-ink-900">
-              <b>{kpi.epicsDone.length}</b> epic selesai dari <b>{kpi.epicsRunning.length}</b> epic aktif di semester ini,
-              menghasilkan <b>{kpi.pointsDone}</b> story point lewat <b>{kpi.storiesDone.length}</b> story,
-              dan <b>{kpi.releases.length}</b> release ke production
-              {kpi.sprints.length > 0 && <> sepanjang sprint <b>{kpi.sprints[0]}–{kpi.sprints[kpi.sprints.length - 1]}</b></>}.
+              <b>{kpi.epicsDone.length}</b> of <b>{kpi.epicsRunning.length}</b> epics active this semester are done,
+              producing <b>{kpi.pointsDone}</b> story points across <b>{kpi.storiesDone.length}</b> stories,
+              and <b>{kpi.releases.length}</b> releases to production
+              {kpi.sprints.length > 0 && <> over sprints <b>{kpi.sprints[0]}–{kpi.sprints[kpi.sprints.length - 1]}</b></>}.
             </p>
           </div>
 
           <div className="rounded-xl border border-mist-200 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-mist-600">
-              🏆 Completed Epics ({kpi.epicsDone.length})
+              Epics done ({kpi.epicsDone.length})
             </div>
             <ul className="mt-2 space-y-1">
               {kpi.epicsDone.slice(0, 6).map((e) => (
-                <li key={e.id} className="truncate text-sm text-ink-700">✅ {e.name}</li>
+                <li key={e.id} className="flex items-center gap-1.5 truncate text-sm text-ink-700"><Icon name="check" className="h-3.5 w-3.5 shrink-0 text-ocean-600" /> <span className="truncate">{e.name}</span></li>
               ))}
-              {kpi.epicsDone.length === 0 && <li className="text-sm text-mist-400">Belum ada.</li>}
+              {kpi.epicsDone.length === 0 && <li className="text-sm text-mist-400">None yet.</li>}
               {kpi.epicsDone.length > 6 && (
-                <li className="text-xs text-mist-400">+{kpi.epicsDone.length - 6} lagi</li>
+                <li className="text-xs text-mist-400">+{kpi.epicsDone.length - 6} more</li>
               )}
             </ul>
           </div>
 
           <div className="rounded-xl border border-mist-200 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-mist-600">
-              🔨 Active Epics ({ongoing.length})
+              Unfinished ({ongoing.length})
             </div>
             <ul className="mt-2 space-y-1">
               {ongoing.slice(0, 6).map((e) => {
@@ -212,8 +219,8 @@ export default function RecapPage() {
                   </li>
                 );
               })}
-              {ongoing.length === 0 && <li className="text-sm text-mist-400">Nggak ada.</li>}
-              {ongoing.length > 6 && <li className="text-xs text-mist-400">+{ongoing.length - 6} lagi</li>}
+              {ongoing.length === 0 && <li className="text-sm text-mist-400">None.</li>}
+              {ongoing.length > 6 && <li className="text-xs text-mist-400">+{ongoing.length - 6} more</li>}
             </ul>
           </div>
         </div>
@@ -237,7 +244,7 @@ function PageHeadRecap({
     <header className="sticky top-0 z-20 -mx-4 mb-5 border-b border-mist-200 bg-paper/95 px-4 py-4 backdrop-blur lg:-mx-8 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Label>Review Period</Label>
+          <Label>Assessment period</Label>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Semester {half} · {year}</h1>
           <p className="mt-0.5 font-mono text-xs text-mist-600">{fmt(sem.start)} — {fmt(sem.end)}</p>
         </div>
@@ -248,7 +255,7 @@ function PageHeadRecap({
             options={[{ value: "1", label: "Semester 1" }, { value: "2", label: "Semester 2" }]}
           />
           <Stepper value={year} onChange={setYear} min={nowYear - 3} max={nowYear + 1} />
-          <Btn onClick={onCsv}>⬇︎ Export CSV</Btn>
+          <Btn onClick={onCsv}><span className="inline-flex items-center gap-1.5"><Icon name="download" className="h-4 w-4" /> Export CSV</span></Btn>
         </div>
       </div>
     </header>

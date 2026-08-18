@@ -7,6 +7,7 @@ import {
   type ReqCard, type ReqCategory, type ReqCriterion, type ReqLink, type ReqPriority, type ReqStage,
 } from "@/lib/types";
 import { Btn, ErrorBar, Label, Loading, Metric, PageHead, Segmented, inputCls } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 const STAGE_PALETTE = ["#98A2B3", "#6172F3", "#0E9384", "#F79009", "#DC6803", "#1A6AFF", "#2FC0AF", "#12B76A", "#F04438"];
 
@@ -154,7 +155,7 @@ export default function RequirementsPage() {
         sub="Capture, review, and track product and business requirements from stakeholders — on a board you can shape to fit your intake process."
       >
         <div className="relative">
-          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mist-400">⚲</span>
+          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mist-400"><Icon name="search" className="h-4 w-4" /></span>
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -167,8 +168,8 @@ export default function RequirementsPage() {
           onChange={(v) => setCat(v as "All" | ReqCategory)}
           options={[{ value: "All", label: "All" }, ...REQ_CATEGORIES.map((c) => ({ value: c, label: c }))]}
         />
-        <Btn onClick={addStage}>＋ Add stage</Btn>
-        <Btn tone="accent" onClick={() => openNew()}>＋ New requirement</Btn>
+        <Btn onClick={addStage}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> Add stage</span></Btn>
+        <Btn tone="accent" onClick={() => openNew()}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> New requirement</span></Btn>
       </PageHead>
 
       <ErrorBar msg={error} />
@@ -245,7 +246,7 @@ export default function RequirementsPage() {
                   onClick={() => setMenuStage((m) => (m === stage.id ? null : stage.id))}
                   className="rounded px-1.5 text-mist-400 hover:bg-mist-100 hover:text-ink-900"
                 >
-                  ⋯
+                  <Icon name="more" className="h-4 w-4" />
                 </button>
 
                 {menuStage === stage.id && (
@@ -253,11 +254,11 @@ export default function RequirementsPage() {
                     <div className="fixed inset-0 z-40" onClick={() => setMenuStage(null)} />
                     <div className="absolute right-2 top-10 z-50 w-44 rounded-lg border border-mist-200 bg-white p-1.5 shadow-lg">
                       <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-ink-700 hover:bg-mist-50"
-                        onClick={() => { setRenaming(stage.id); setMenuStage(null); }}>✎ Rename</button>
+                        onClick={() => { setRenaming(stage.id); setMenuStage(null); }}>Rename</button>
                       <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-ink-700 hover:bg-mist-50 disabled:opacity-40"
-                        disabled={idx === 0} onClick={() => moveStage(idx, -1)}>◀ Move left</button>
+                        disabled={idx === 0} onClick={() => moveStage(idx, -1)}>Move left</button>
                       <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-ink-700 hover:bg-mist-50 disabled:opacity-40"
-                        disabled={idx === stages.length - 1} onClick={() => moveStage(idx, 1)}>▶ Move right</button>
+                        disabled={idx === stages.length - 1} onClick={() => moveStage(idx, 1)}>Move right</button>
                       <div className="flex gap-1.5 px-2 py-1.5">
                         {STAGE_PALETTE.slice(0, 7).map((col) => (
                           <button key={col} onClick={() => { patchStage(stage.id, { color: col }); setMenuStage(null); }}
@@ -265,7 +266,7 @@ export default function RequirementsPage() {
                         ))}
                       </div>
                       <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-alert-600 hover:bg-alert-100"
-                        onClick={() => deleteStage(stage)}>🗑 Delete stage</button>
+                        onClick={() => deleteStage(stage)}>Delete stage</button>
                     </div>
                   </>
                 )}
@@ -295,10 +296,10 @@ export default function RequirementsPage() {
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="font-mono text-[10px] text-mist-400">{c.code}</span>
                         {c.criteria.length > 0 && (
-                          <span className="rounded-full bg-mist-100 px-1.5 py-0.5 text-[10px] text-mist-600">✓ {acDone}/{c.criteria.length}</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-mist-100 px-1.5 py-0.5 text-[10px] text-mist-600"><Icon name="check" className="h-3 w-3" />{acDone}/{c.criteria.length}</span>
                         )}
                         {c.links.length > 0 && (
-                          <span className="rounded-full bg-mist-100 px-1.5 py-0.5 text-[10px] text-mist-600">🔗 {c.links.length}</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-mist-100 px-1.5 py-0.5 text-[10px] text-mist-600"><Icon name="link" className="h-3 w-3" />{c.links.length}</span>
                         )}
                       </div>
                       <div className="mt-2 flex items-center justify-between border-t border-mist-100 pt-2">
@@ -320,7 +321,7 @@ export default function RequirementsPage() {
                 onClick={() => openNew(stage.id)}
                 className="mx-2 mb-2 w-[calc(100%-1rem)] rounded-lg border border-dashed border-mist-200 py-1.5 text-left text-xs text-mist-600 hover:border-ocean-500 hover:bg-white hover:text-ocean-600"
               >
-                &nbsp;＋ Add requirement
+                + Add requirement
               </button>
             </div>
           );
@@ -331,7 +332,7 @@ export default function RequirementsPage() {
           title="Add stage"
           className="grid h-28 w-12 flex-shrink-0 place-items-center rounded-xl border border-dashed border-mist-200 text-xl text-mist-400 hover:border-ocean-500 hover:bg-white hover:text-ocean-600"
         >
-          ＋
+          <Icon name="plus" className="h-5 w-5" />
         </button>
       </div>
 
@@ -383,7 +384,7 @@ function Drawer({
             <div className="font-mono text-[11px] text-mist-400">{draft.code ?? "NEW REQUIREMENT"}</div>
             <h3 className="mt-0.5 text-base font-semibold">{draft.id ? "Edit requirement" : "New requirement"}</h3>
           </div>
-          <button onClick={onClose} className="rounded px-1.5 text-xl text-mist-400 hover:bg-mist-50 hover:text-ink-900">✕</button>
+          <button onClick={onClose} className="rounded px-1.5 text-mist-400 hover:bg-mist-50 hover:text-ink-900"><Icon name="close" className="h-5 w-5" /></button>
         </div>
 
         <div className="flex-1 overflow-auto p-5">
@@ -450,7 +451,7 @@ function Drawer({
                     onChange={(e) => set({ criteria: draft.criteria.map((x, j) => (j === i ? { ...x, done: e.target.checked } : x)) })} />
                   <span className={`flex-1 text-[13px] ${a.done ? "text-mist-400 line-through" : "text-ink-900"}`}>{a.text}</span>
                   <button onClick={() => set({ criteria: draft.criteria.filter((_, j) => j !== i) })}
-                    className="text-mist-400 hover:text-alert-600">✕</button>
+                    className="text-mist-400 hover:text-alert-600"><Icon name="close" className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
@@ -466,10 +467,10 @@ function Drawer({
             <div className="space-y-1">
               {draft.links.map((l, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 text-[12px]">
-                  <span>🔗</span>
+                  <Icon name="link" className="h-3.5 w-3.5 text-mist-400" />
                   <a href={l.url} target="_blank" rel="noreferrer" className="text-ocean-600 hover:underline">{l.label}</a>
                   <button onClick={() => set({ links: draft.links.filter((_, j) => j !== i) })}
-                    className="ml-auto text-mist-400 hover:text-alert-600">✕</button>
+                    className="ml-auto text-mist-400 hover:text-alert-600"><Icon name="close" className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
@@ -485,7 +486,7 @@ function Drawer({
         <div className="flex items-center justify-between gap-3 border-t border-mist-200 px-5 py-3.5">
           {draft.id ? <Btn tone="danger" onClick={onDelete}>Delete</Btn> : <span />}
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 text-xs text-mist-400" title="Nanti bisa dihubungkan ke menu Epic">↗ Promote to Epic</span>
+            <span className="flex items-center gap-1.5 text-xs text-mist-400" title="Can be linked to the Epic page later"><Icon name="promote" className="h-4 w-4" /> Promote to Epic</span>
             <Btn tone="accent" onClick={onSave}>Save</Btn>
           </div>
         </div>

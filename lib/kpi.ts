@@ -185,11 +185,11 @@ export function recapText(t: Tracker, kpi: Kpi, format: RecapFormat = "text"): s
       )
     );
 
-  L.push(h1(`Rekap ${kpi.sem.label.replace(" · ", " ")}`), "");
+  L.push(h1(`Recap ${kpi.sem.label.replace(" · ", " ")}`), "");
   L.push(
-    `${b("Ringkasan")}: ${kpi.epicsDone.length} epic selesai dari ${kpi.epicsRunning.length} epic aktif di semester ini · ` +
-      `${kpi.pointsDone} story point delivered (${kpi.storiesDone.length} story) · ` +
-      `${kpi.releases.length} release ke production` +
+    `${b("Summary")}: ${kpi.epicsDone.length} of ${kpi.epicsRunning.length} epics active this semester are done · ` +
+      `${kpi.pointsDone} story points delivered (${kpi.storiesDone.length} stories) · ` +
+      `${kpi.releases.length} releases to production` +
       (kpi.sprints.length ? ` · sprint ${kpi.sprints[0]}–${kpi.sprints[kpi.sprints.length - 1]}` : "")
   );
 
@@ -200,7 +200,7 @@ export function recapText(t: Tracker, kpi: Kpi, format: RecapFormat = "text"): s
     const st = stats[e.id] ?? { total: 0, points: 0, done: 0, donePoints: 0 };
     const vers = versionsOf(e.id);
     const parts = [
-      `${st.done}/${st.total} story`,
+      `${st.done}/${st.total} stories`,
       `${st.donePoints}/${st.points} pt`,
       `${fmt(e.win.start)}–${fmt(e.win.end)}`,
     ];
@@ -210,18 +210,18 @@ export function recapText(t: Tracker, kpi: Kpi, format: RecapFormat = "text"): s
   };
 
   if (done.length) {
-    L.push(h2(`Epic selesai (${done.length})`), "");
+    L.push(h2(`Epics done (${done.length})`), "");
     done.forEach(block);
   }
   if (ongoing.length) {
-    L.push(h2(`Epic belum selesai (${ongoing.length})`), "");
+    L.push(h2(`Epics unfinished (${ongoing.length})`), "");
     ongoing.forEach(block);
   }
   if (kpi.releases.length) {
-    L.push(h2(`Release ke production (${kpi.releases.length})`), "");
+    L.push(h2(`Releases to production (${kpi.releases.length})`), "");
     kpi.releases.forEach((r) => {
       const n = t.stories.filter((s) => s.release_id === r.id).length;
-      L.push(li(`v${r.fix_version} — ${fmt(r.deploy_date)} · ${n} story`));
+      L.push(li(`v${r.fix_version} — ${fmt(r.deploy_date)} · ${n} stories`));
     });
   }
 

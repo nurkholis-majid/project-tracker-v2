@@ -7,6 +7,7 @@ import {
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, ROW, RowActions, Select, Td, Th, inputCls,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 /** TRUE → FALSE → belum dipasang (null) → TRUE … */
 const cycle = (v: boolean | null) => (v === true ? false : v === false ? null : true);
@@ -70,9 +71,9 @@ export default function FlagsPage() {
           value={env}
           onChange={setEnv}
           options={[
-            { value: "all", label: "Semua flag" },
-            { value: "prod_off", label: "⚠️ TRUE di UAT, belum PROD" },
-            { value: "on", label: "✅ TRUE di PROD" },
+            { value: "all", label: "All flags" },
+            { value: "prod_off", label: "TRUE in UAT, not PROD" },
+            { value: "on", label: "TRUE in PROD" },
           ]}
         />
         <Btn tone="accent" onClick={() => setForm(blank())}>+ Feature flag</Btn>
@@ -84,9 +85,9 @@ export default function FlagsPage() {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th className="w-64">Nama flag</Th>
+              <Th className="w-64">Flag name</Th>
               <Th className="w-56">Epic</Th>
-              <Th>Deskripsi</Th>
+              <Th>Description</Th>
               <Th className="w-20 text-center">DEV</Th>
               <Th className="w-20 text-center">UAT</Th>
               <Th className="w-20 text-center">PROD</Th>
@@ -125,13 +126,13 @@ export default function FlagsPage() {
                 <Td>
                   <RowActions
                     onEdit={() => setForm(f)}
-                    onDelete={() => confirm(`Hapus flag ${f.name}?`) && remove("feature_flags", f.id)}
+                    onDelete={() => confirm(`Delete flag ${f.name}?`) && remove("feature_flags", f.id)}
                   />
                 </Td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <EmptyRow cols={8} icon="🎚️" msg="Belum ada flag di filter ini." />
+              <EmptyRow cols={8} icon="🎚️" msg="No flags in this filter." />
             )}
           </tbody>
         </table>
@@ -139,21 +140,21 @@ export default function FlagsPage() {
 
       {form && (
         <Modal
-          title={form.id ? "Ubah feature flag" : "Feature flag baru"}
-          subtitle="Satu flag bisa dipakai di beberapa epic sekaligus."
+          title={form.id ? "Edit feature flag" : "New feature flag"}
+          subtitle="One flag can be used across several epics."
           onClose={() => setForm(null)}
           wide
         >
           <div className="space-y-4">
-            <Field label="Nama flag">
+            <Field label="Flag name">
               <input className={inputCls + " font-mono"} value={form.name ?? ""}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="FF_BE_V1_transferHybridMode" />
             </Field>
 
             <Field
-              label="Epic yang pakai flag ini"
-              hint="Bisa pilih lebih dari satu. Jira key ikut terisi otomatis dari epic yang dicentang."
+              label="Epics using this flag"
+              hint="Pick more than one. The Jira key auto-fills from the selected epics."
             >
               <EpicPicker
                 epics={data.epics}
@@ -162,21 +163,21 @@ export default function FlagsPage() {
               />
             </Field>
 
-            <Field label="Jira key" hint="Boleh lebih dari satu, pisahkan dengan koma.">
+            <Field label="Jira key" hint="More than one allowed, separate with commas.">
               <input className={inputCls + " font-mono"} value={form.jira_key ?? ""}
                 onChange={(e) => setForm({ ...form, jira_key: e.target.value.toUpperCase() })}
                 placeholder="DLB-8833, DLB-9931" />
             </Field>
 
-            <Field label="Deskripsi">
+            <Field label="Description">
               <textarea rows={4} className={inputCls} value={form.description ?? ""}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Ketika flag = true: transfer < 100 juta pakai RTOL, ≥ 100 juta pakai BI-FAST." />
+                placeholder="When flag = true: transfers < 100M use RTOL, ≥ 100M use BI-FAST." />
             </Field>
 
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-widest text-mist-600">
-                Konfigurasi per environment
+                Per-environment configuration
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {([["dev", "DEV"], ["uat", "UAT"], ["prod", "PROD"]] as const).map(([k, l]) => (
@@ -222,7 +223,7 @@ function EpicPicker({
   return (
     <div className="rounded-xl border border-mist-200 bg-white">
       <div className="border-b border-mist-100 p-2">
-        <input className={inputCls} placeholder="🔍 Cari epic…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className={inputCls} placeholder="Search epics…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="max-h-52 overflow-y-auto p-1">
         {list.map((e) => {
@@ -238,18 +239,18 @@ function EpicPicker({
               <span className={`grid h-4 w-4 shrink-0 place-items-center rounded border text-[10px] ${
                 on ? "border-ocean-600 bg-ocean-600 text-white" : "border-mist-200"
               }`}>
-                {on ? "✓" : ""}
+                {on ? <Icon name="check" className="h-3 w-3" strokeWidth={3} /> : ""}
               </span>
               <span className="truncate">{e.name}</span>
               {e.jira_key && <span className="ml-auto font-mono text-[10px] text-mist-400">{e.jira_key}</span>}
             </button>
           );
         })}
-        {list.length === 0 && <p className="p-3 text-center text-xs text-mist-400">Epic nggak ketemu.</p>}
+        {list.length === 0 && <p className="p-3 text-center text-xs text-mist-400">No epics found.</p>}
       </div>
       {selected.length > 0 && (
         <div className="border-t border-mist-100 px-3 py-2 text-xs text-mist-600">
-          {selected.length} epic dipilih
+          {selected.length} epics selected
         </div>
       )}
     </div>

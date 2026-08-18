@@ -8,11 +8,12 @@ import {
   Btn, Card, EmptyRow, ErrorBar, Field, FormActions, Label, Loading, Metric, Modal,
   PageHead, Progress, ROW, Select, Td, Th, inputCls,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 const SPRINT_LENGTHS = [
-  { value: "7", label: "1 week" },
-  { value: "14", label: "2 weeks" },
-  { value: "21", label: "3 weeks" },
+  { value: "7", label: "1 week (7 days)" },
+  { value: "14", label: "2 weeks (14 days)" },
+  { value: "21", label: "3 weeks (21 days)" },
 ];
 
 const blankProject = (): Partial<CardingProject> => ({
@@ -91,7 +92,7 @@ export default function CardingPage() {
 
   const deleteProject = () => {
     if (!project) return;
-    if (confirm(`Hapus project carding "${project.name}"? Semua story di dalamnya ikut terhapus.`))
+    if (confirm(`Delete carding project "${project.name}"? All stories inside it will be deleted too.`))
       remove("carding_projects", project.id);
   };
 
@@ -133,7 +134,8 @@ export default function CardingPage() {
   return (
     <div>
       <PageHead
-        title="Story Breakdown"
+        title="Carding"
+        sub="Break a project into stories, estimate each story\u2019s points, then see the projected number of sprints and the finish date."
       >
         {projects.length > 0 && (
           <Select
@@ -143,20 +145,20 @@ export default function CardingPage() {
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
           />
         )}
-        <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ New Project</Btn>
+        <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ Project</Btn>
       </PageHead>
 
       <ErrorBar msg={error} />
 
       {!project ? (
         <div className="rounded-xl border border-dashed border-mist-200 bg-white p-12 text-center">
-          <div className="text-3xl">🃏</div>
-          <p className="mt-3 text-sm font-medium text-ink-900">Belum ada project carding.</p>
+          <div className="flex justify-center text-mist-400"><Icon name="carding" className="h-8 w-8" /></div>
+          <p className="mt-3 text-sm font-medium text-ink-900">No carding projects yet.</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-mist-600">
-            Buat project untuk mulai memecah inisiatif jadi story dan menaksir effort-nya.
+            Create a project to start breaking an initiative into stories and estimating the effort.
           </p>
           <div className="mt-4">
-            <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ New Project</Btn>
+            <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ New project</Btn>
           </div>
         </div>
       ) : (
@@ -169,17 +171,17 @@ export default function CardingPage() {
                 {project.description && <p className="mt-0.5 text-sm text-mist-600">{project.description}</p>}
               </div>
               <div className="flex shrink-0 gap-2">
-                <Btn onClick={() => setProjForm(project)}>✏️ Edit</Btn>
-                <Btn tone="danger" onClick={deleteProject}>🗑️ Delete</Btn>
+                <Btn onClick={() => setProjForm(project)}><span className="inline-flex items-center gap-1.5"><Icon name="edit" className="h-4 w-4" /> Edit</span></Btn>
+                <Btn tone="danger" onClick={deleteProject}><span className="inline-flex items-center gap-1.5"><Icon name="trash" className="h-4 w-4" /> Delete</span></Btn>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Field label="Sprint Velocity">
+              <Field label="Velocity (pt/sprint)" hint="Team capacity per sprint">
                 <input type="number" min={1} className={inputCls} value={project.velocity}
                   onChange={(e) => patchProject(project.id, { velocity: Math.max(1, Number(e.target.value) || 1) })} />
               </Field>
-              <Field label="Sprint Duration">
+              <Field label="Sprint length">
                 <Select
                   full
                   value={String(project.sprint_length_days)}
@@ -187,11 +189,11 @@ export default function CardingPage() {
                   options={SPRINT_LENGTHS}
                 />
               </Field>
-              <Field label="Project Start Date">
+              <Field label="Start date" hint="Used to estimate the finish date">
                 <input type="date" className={inputCls} value={project.start_date ?? ""}
                   onChange={(e) => patchProject(project.id, { start_date: e.target.value || null })} />
               </Field>
-              <Field label="Planning Buffer (%)">
+              <Field label="Buffer (%)" hint="Effort contingency">
                 <input type="number" min={0} max={100} className={inputCls} value={project.buffer_pct}
                   onChange={(e) => patchProject(project.id, { buffer_pct: Math.max(0, Number(e.target.value) || 0) })} />
               </Field>
@@ -200,20 +202,20 @@ export default function CardingPage() {
 
           {/* ---------- Ringkasan estimasi ---------- */}
           <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
-            <Metric v={est!.totalStories} k="Stories" icon="📝" />
-            <Metric v={est!.totalPoints} k="Total Story Points" icon="🔢" />
+            <Metric v={est!.totalStories} k="Story" icon="📝" />
+            <Metric v={est!.totalPoints} k="Total points" icon="🔢" />
             <Metric v={est!.bufferedPoints} k={`+buffer ${project.buffer_pct}%`} icon="🛡️" />
-            <Metric v={est!.sprintCount} k="Estimated Sprints" icon="🏃" accent />
-            <Metric v={est!.sprintCount ? Math.round(est!.durationDays / 7) : 0} k="Duration (week)" icon="🗓️" />
-            <Metric v={fmtDate(est!.endDate)} k="Est Completion Date" icon="🎯" />
+            <Metric v={est!.sprintCount} k="Est. sprints" icon="🏃" accent />
+            <Metric v={est!.sprintCount ? Math.round(est!.durationDays / 7) : 0} k="Duration (weeks)" icon="🗓️" />
+            <Metric v={fmtDate(est!.endDate)} k="Est. finish" icon="🎯" />
           </div>
 
           {est!.overflowStory && (
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-sun-300 bg-sun-100 px-3 py-2 text-sm text-sun-700">
-              <span>⚠️</span>
+              <Icon name="warn" className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Story <b>{est!.overflowStory.title}</b> ({est!.overflowStory.points} pt) lebih besar dari 1 sprint penuh
-                ({project.velocity} pt). Sebaiknya dipecah lagi supaya estimasinya realistis.
+                Story <b>{est!.overflowStory.title}</b> ({est!.overflowStory.points} pt) is larger than one full sprint
+                ({project.velocity} pt). Consider splitting it so the estimate stays realistic.
               </span>
             </div>
           )}
@@ -221,17 +223,17 @@ export default function CardingPage() {
           {/* ---------- Quick add story ---------- */}
           <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-mist-200 bg-white p-3 shadow-card">
             <div className="min-w-[16rem] flex-1">
-              <Label>New Story</Label>
+              <Label>New story / task</Label>
               <input
                 className={inputCls + " mt-1"}
-                placeholder="Input story tittle"
+                placeholder="e.g. Design the appraisal table schema"
                 value={quickTitle}
                 onChange={(e) => setQuickTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addQuickStory()}
               />
             </div>
             <div className="w-40">
-              <Label>Component (opt)</Label>
+              <Label>Group (optional)</Label>
               <input
                 className={inputCls + " mt-1"}
                 placeholder="Backend"
@@ -241,10 +243,10 @@ export default function CardingPage() {
               />
             </div>
             <div>
-              <Label>Story Points</Label>
+              <Label>Point</Label>
               <div className="mt-1"><PointPicker value={quickPoints} onChange={setQuickPoints} /></div>
             </div>
-            <Btn tone="accent" onClick={addQuickStory}>+ Add Story</Btn>
+            <Btn tone="accent" onClick={addQuickStory}>+ Add</Btn>
           </div>
 
           {/* ---------- Task list + gantt sprint ---------- */}
@@ -254,7 +256,7 @@ export default function CardingPage() {
                 <tr>
                   <Th className="w-10 text-center">#</Th>
                   <Th>Story</Th>
-                  <Th className="w-32">Component</Th>
+                  <Th className="w-32">Group</Th>
                   <Th className="w-28 text-center">Point</Th>
                   <Th className="w-20 text-center">Sprint</Th>
                   {sprintCells.length > 0 && (
@@ -310,21 +312,21 @@ export default function CardingPage() {
                     )}
                     <Td>
                       <div className="flex items-center gap-0.5">
-                        <button onClick={() => move(idx, -1)} disabled={idx === 0} title="Naik"
-                          className="rounded px-1.5 py-1 text-xs text-mist-400 hover:bg-mist-50 hover:text-ink-700 disabled:opacity-30">↑</button>
-                        <button onClick={() => move(idx, 1)} disabled={idx === est!.packed.length - 1} title="Turun"
-                          className="rounded px-1.5 py-1 text-xs text-mist-400 hover:bg-mist-50 hover:text-ink-700 disabled:opacity-30">↓</button>
-                        <button onClick={() => setStoryForm(s)} title="Ubah"
-                          className="rounded px-1.5 py-1 text-xs text-mist-600 hover:bg-mist-50 hover:text-ocean-600">✏️</button>
-                        <button onClick={() => confirm(`Hapus story "${s.title}"?`) && remove("carding_stories", s.id)} title="Hapus"
-                          className="rounded px-1.5 py-1 text-xs text-mist-400 hover:bg-alert-100 hover:text-alert-600">🗑️</button>
+                        <button onClick={() => move(idx, -1)} disabled={idx === 0} title="Move up"
+                          className="rounded px-1.5 py-1 text-mist-400 hover:bg-mist-50 hover:text-ink-700 disabled:opacity-30"><Icon name="up" className="h-4 w-4" /></button>
+                        <button onClick={() => move(idx, 1)} disabled={idx === est!.packed.length - 1} title="Move down"
+                          className="rounded px-1.5 py-1 text-mist-400 hover:bg-mist-50 hover:text-ink-700 disabled:opacity-30"><Icon name="down" className="h-4 w-4" /></button>
+                        <button onClick={() => setStoryForm(s)} title="Edit"
+                          className="rounded px-1.5 py-1 text-mist-600 hover:bg-mist-50 hover:text-ocean-600"><Icon name="edit" className="h-4 w-4" /></button>
+                        <button onClick={() => confirm(`Delete story "${s.title}"?`) && remove("carding_stories", s.id)} title="Delete"
+                          className="rounded px-1.5 py-1 text-mist-400 hover:bg-alert-100 hover:text-alert-600"><Icon name="trash" className="h-4 w-4" /></button>
                       </div>
                     </Td>
                   </tr>
                 ))}
                 {est!.packed.length === 0 && (
                   <EmptyRow cols={sprintCells.length > 0 ? 7 : 6} icon="🃏"
-                    msg="Belum ada story. Tambahkan lewat kolom di atas untuk mulai menaksir." />
+                    msg="No stories yet. Add one using the fields above to start estimating." />
                 )}
               </tbody>
             </table>
@@ -333,7 +335,7 @@ export default function CardingPage() {
           {/* ---------- Beban per sprint ---------- */}
           {est!.loads.length > 0 && (
             <div className="mt-5">
-              <h3 className="mb-2 text-sm font-semibold text-ink-900">Sprint Workload</h3>
+              <h3 className="mb-2 text-sm font-semibold text-ink-900">Load per sprint</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {est!.loads.map((l) => {
                   const pct = Math.round((l.points / Math.max(1, project.velocity)) * 100);
@@ -349,7 +351,7 @@ export default function CardingPage() {
                       <div className="mt-2">
                         <Progress pct={pct} tone={over ? "bg-alert-500" : "bg-ocean-600"} />
                       </div>
-                      <div className="mt-1.5 text-xs text-mist-400">{l.stories.length} story</div>
+                      <div className="mt-1.5 text-xs text-mist-400">{l.stories.length} stories</div>
                     </div>
                   );
                 })}
@@ -362,26 +364,27 @@ export default function CardingPage() {
       {/* ---------- Modal: project ---------- */}
       {projForm && (
         <Modal
-          title={projForm.id ? "Ubah project carding" : "Create New Project"}
+          title={projForm.id ? "Edit carding project" : "New carding project"}
+          subtitle="Velocity and sprint length drive the timeline estimate."
           onClose={() => setProjForm(null)}
         >
           <div className="space-y-4">
-            <Field label="Project Name">
+            <Field label="Project name">
               <input className={inputCls} value={projForm.name ?? ""}
                 onChange={(e) => setProjForm({ ...projForm, name: e.target.value })}
-                placeholder="e.g. Appraisal Portal – Phase 1" />
+                placeholder="Appraisal Web — Phase 1" />
             </Field>
-            <Field label="Description (Optional)">
+            <Field label="Description (optional)">
               <textarea rows={2} className={inputCls} value={projForm.description ?? ""}
                 onChange={(e) => setProjForm({ ...projForm, description: e.target.value })}
-                placeholder="Brief project description" />
+                placeholder="Initiative / short context" />
             </Field>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Sprint Velocity">
-                <input type="number" min={1} className={inputCls} value={projForm.velocity ?? 45}
+              <Field label="Velocity (pt/sprint)">
+                <input type="number" min={1} className={inputCls} value={projForm.velocity ?? 20}
                   onChange={(e) => setProjForm({ ...projForm, velocity: Number(e.target.value) })} />
               </Field>
-              <Field label="Sprint Duration">
+              <Field label="Sprint length">
                 <Select
                   full
                   value={String(projForm.sprint_length_days ?? 14)}
@@ -389,11 +392,11 @@ export default function CardingPage() {
                   options={SPRINT_LENGTHS}
                 />
               </Field>
-              <Field label="Project Start Date">
+              <Field label="Start date">
                 <input type="date" className={inputCls} value={projForm.start_date ?? ""}
                   onChange={(e) => setProjForm({ ...projForm, start_date: e.target.value })} />
               </Field>
-              <Field label="Planning Buffer (%)">
+              <Field label="Buffer (%)">
                 <input type="number" min={0} max={100} className={inputCls} value={projForm.buffer_pct ?? 15}
                   onChange={(e) => setProjForm({ ...projForm, buffer_pct: Number(e.target.value) })} />
               </Field>
@@ -405,18 +408,18 @@ export default function CardingPage() {
 
       {/* ---------- Modal: edit story ---------- */}
       {storyForm && (
-        <Modal title="Edit Story" onClose={() => setStoryForm(null)}>
+        <Modal title="Edit story" onClose={() => setStoryForm(null)}>
           <div className="space-y-4">
-            <Field label="Story Title">
+            <Field label="Story title">
               <input className={inputCls} value={storyForm.title ?? ""}
                 onChange={(e) => setStoryForm({ ...storyForm, title: e.target.value })} />
             </Field>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Component (Optional)">
+              <Field label="Group (opsional)">
                 <input className={inputCls} value={storyForm.epic_group ?? ""}
                   onChange={(e) => setStoryForm({ ...storyForm, epic_group: e.target.value })} />
               </Field>
-              <Field label="Story Points">
+              <Field label="Point">
                 <div className="mt-1">
                   <PointPicker value={Number(storyForm.points) || 0}
                     onChange={(v) => setStoryForm({ ...storyForm, points: v })} />

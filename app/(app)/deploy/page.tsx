@@ -9,6 +9,7 @@ import {
   Badge, Btn, Card, EmptyRow, ErrorBar, JiraLink, Loading, Metric, PageHead, ROW, Select,
   StatusSelect, Td, Th, filterCls,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 /**
  * Story yang development-nya sudah selesai tapi belum sampai production.
@@ -60,7 +61,7 @@ export default function DeployPage() {
       .update({ release_id: target, release_status: "Merging to UAT" })
       .in("id", Array.from(picked));
     setBusy(false);
-    if (error) return setError("Gagal assign: " + error.message);
+    if (error) return setError("Assign failed: " + error.message);
     setPicked(new Set());
     setTarget("");
     await reload();
@@ -74,7 +75,7 @@ export default function DeployPage() {
       .update({ release_status: "Deployed" })
       .in("id", Array.from(picked));
     setBusy(false);
-    if (error) return setError("Gagal update: " + error.message);
+    if (error) return setError("Update failed: " + error.message);
     setPicked(new Set());
     await reload();
   };
@@ -84,15 +85,15 @@ export default function DeployPage() {
       <PageHead
         title="Need to Deploy"
       >
-        <input className={filterCls + " w-52"} placeholder="🔍 Cari story…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className={filterCls + " w-52"} placeholder="Search stories…" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select
           w="w-56"
           value={bucket}
           onChange={setBucket}
           options={[
-            { value: "all", label: "Semua yang belum deploy" },
-            { value: "unassigned", label: "⚠️ Belum punya fix version" },
-            { value: "uat", label: "🔀 Sedang di UAT" },
+            { value: "all", label: "All not yet deployed" },
+            { value: "unassigned", label: "No fix version" },
+            { value: "uat", label: "In UAT" },
           ]}
         />
       </PageHead>
@@ -100,30 +101,30 @@ export default function DeployPage() {
       <ErrorBar msg={error} />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric v={all.length} k="Story menunggu deploy" icon="🚢" accent />
-        <Metric v={points} k="Story point tertahan" icon="🔢" />
-        <Metric v={unassigned.length} k="Belum punya fix version" icon="⚠️" />
-        <Metric v={data.releases.filter((r) => r.status === "Planned").length} k="Release direncanakan" icon="🗓️" />
+        <Metric v={all.length} k="Stories awaiting deploy" icon="🚢" accent />
+        <Metric v={points} k="Story points on hold" icon="🔢" />
+        <Metric v={unassigned.length} k="No fix version" icon="⚠️" />
+        <Metric v={data.releases.filter((r) => r.status === "Planned").length} k="Releases planned" icon="🗓️" />
       </div>
 
       {/* Toolbar aksi massal muncul begitu ada yang dicentang */}
       {picked.size > 0 && (
         <div className="sticky top-[104px] z-10 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-ocean-200 bg-ocean-100 px-4 py-3">
-          <span className="text-sm font-semibold text-ocean-700">{picked.size} story dipilih</span>
+          <span className="text-sm font-semibold text-ocean-700">{picked.size} stories selected</span>
           <Select
             w="w-52"
             value={target}
             onChange={setTarget}
             options={[
-              { value: "", label: "Pilih fix version…" },
+              { value: "", label: "Choose fix version…" },
               ...data.releases.map((r) => ({ value: r.id, label: `v${r.fix_version}` })),
             ]}
           />
           <Btn tone="solid" onClick={bulkAssign} disabled={!target || busy}>
-            Assign ke release
+            Assign to release
           </Btn>
-          <Btn onClick={bulkDeployed} disabled={busy}>✅ Tandai Deployed</Btn>
-          <Btn onClick={() => setPicked(new Set())}>Batal</Btn>
+          <Btn onClick={bulkDeployed} disabled={busy}><span className="inline-flex items-center gap-1.5"><Icon name="done" className="h-4 w-4" /> Mark Deployed</span></Btn>
+          <Btn onClick={() => setPicked(new Set())}>Cancel</Btn>
         </div>
       )}
 
@@ -159,7 +160,7 @@ export default function DeployPage() {
                 <Td className="text-right font-mono text-xs">{s.sprint ?? "—"}</Td>
                 <Td className="font-mono text-xs">{fmt(s.end_date)}</Td>
                 <Td className="font-mono text-xs">
-                  {relOf(s.release_id) ?? <span className="text-sun-600">⚠️ kosong</span>}
+                  {relOf(s.release_id) ?? <span className="inline-flex items-center gap-1 text-sun-600"><Icon name="warn" className="h-3.5 w-3.5" /> none</span>}
                 </Td>
                 <Td>
                   <StatusSelect value={s.release_status} options={RELEASE_STATUS}
@@ -168,7 +169,7 @@ export default function DeployPage() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <EmptyRow cols={9} icon="🎉" msg="Nggak ada utang deploy. Semua story Done sudah sampai production." />
+              <EmptyRow cols={9} icon="🎉" msg="No deploy backlog. Every Done story has reached production." />
             )}
           </tbody>
         </table>
