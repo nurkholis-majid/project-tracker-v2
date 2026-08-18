@@ -9,6 +9,7 @@ import {
   PageHead, Progress, ROW, Select, Td, Th, inputCls,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { supabase } from "@/lib/supabase";
 
 const SPRINT_LENGTHS = [
   { value: "7", label: "1 week (7 days)" },
@@ -54,6 +55,18 @@ export default function CardingPage() {
   const [quickTitle, setQuickTitle] = useState("");
   const [quickPoints, setQuickPoints] = useState(3);
   const [quickGroup, setQuickGroup] = useState("");
+
+  // Requirements (from the Requirements board) offered as project-name suggestions.
+  const [reqOptions, setReqOptions] = useState<{ code: string; title: string; description: string | null }[]>([]);
+  useEffect(() => {
+    supabase()
+      .from("req_cards")
+      .select("code,title,description")
+      .order("code")
+      .then(({ data }: { data: { code: string; title: string; description: string | null }[] | null }) => {
+        if (data) setReqOptions(data);
+      });
+  }, []);
 
   // Pilih project pertama otomatis; kalau yang aktif terhapus, pindah ke yang ada.
   useEffect(() => {
@@ -369,10 +382,28 @@ export default function CardingPage() {
           onClose={() => setProjForm(null)}
         >
           <div className="space-y-4">
-            <Field label="Project name">
-              <input className={inputCls} value={projForm.name ?? ""}
-                onChange={(e) => setProjForm({ ...projForm, name: e.target.value })}
-                placeholder="Appraisal Web — Phase 1" />
+            <Field label="Project name" hint="Type a new name, or pick an existing requirement from the list.">
+              <input
+                className={inputCls}
+                list="req-suggestions"
+                value={projForm.name ?? ""}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  const match = reqOptions.find((r) => r.title === name);
+                  setProjForm({
+                    ...projForm,
+                    name,
+                    // Pulled a requirement in? Prefill its description if the field is still empty.
+                    description: match && !projForm.description ? (match.description ?? "") : projForm.description,
+                  });
+                }}
+                placeholder="Appraisal Web — Phase 1"
+              />
+              <datalist id="req-suggestions">
+                {reqOptions.map((r) => (
+                  <option key={r.code} value={r.title}>{r.code}</option>
+                ))}
+              </datalist>
             </Field>
             <Field label="Description (optional)">
               <textarea rows={2} className={inputCls} value={projForm.description ?? ""}

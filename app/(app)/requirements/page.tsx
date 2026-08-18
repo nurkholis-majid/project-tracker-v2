@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRequirements } from "@/lib/useRequirements";
 import {
   REQ_PRIORITIES, REQ_PRIORITY_META, REQ_CATEGORIES,
   type ReqCard, type ReqCategory, type ReqCriterion, type ReqLink, type ReqPriority, type ReqStage,
 } from "@/lib/types";
-import { Btn, ErrorBar, Label, Loading, Metric, PageHead, Segmented, inputCls } from "@/components/ui";
+import { Btn, ErrorBar, Label, Loading, Metric, Modal, PageHead, Segmented, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
 const STAGE_PALETTE = ["#98A2B3", "#6172F3", "#0E9384", "#F79009", "#DC6803", "#1A6AFF", "#2FC0AF", "#12B76A", "#F04438"];
@@ -361,13 +361,6 @@ function Drawer({
   const [lkLabel, setLkLabel] = useState("");
   const [lkUrl, setLkUrl] = useState("");
 
-  // Tutup dengan tombol Esc.
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const addAc = () => { if (acNew.trim()) { set({ criteria: [...draft.criteria, { text: acNew.trim(), done: false }] }); setAcNew(""); } };
   const addLink = () => { if (lkLabel.trim()) { set({ links: [...draft.links, { label: lkLabel.trim(), url: lkUrl.trim() || "#" }] }); setLkLabel(""); setLkUrl(""); } };
@@ -376,18 +369,8 @@ function Drawer({
     `rounded-full border px-3 py-1.5 text-xs font-medium ${on ? extra : "border-mist-200 bg-white text-ink-700 hover:bg-mist-50"}`;
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-ink-900/35" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-50 flex h-screen w-[460px] max-w-[94vw] flex-col bg-white shadow-lg">
-        <div className="flex items-start justify-between gap-3 border-b border-mist-200 px-5 py-4">
-          <div>
-            <div className="font-mono text-[11px] text-mist-400">{draft.code ?? "NEW REQUIREMENT"}</div>
-            <h3 className="mt-0.5 text-base font-semibold">{draft.id ? "Edit requirement" : "New requirement"}</h3>
-          </div>
-          <button onClick={onClose} className="rounded px-1.5 text-mist-400 hover:bg-mist-50 hover:text-ink-900"><Icon name="close" className="h-5 w-5" /></button>
-        </div>
-
-        <div className="flex-1 overflow-auto p-5">
+    <Modal title={draft.id ? "Edit requirement" : "New requirement"} subtitle={draft.code} onClose={onClose}>
+      <div>
           <Fld label="Summary">
             <input className={inputCls} value={draft.title} onChange={(e) => set({ title: e.target.value })}
               placeholder="e.g. Appraisal Portal — Pool Request Routing" />
@@ -481,17 +464,16 @@ function Drawer({
               <Btn onClick={addLink}>Add</Btn>
             </div>
           </Fld>
-        </div>
+      </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-mist-200 px-5 py-3.5">
-          {draft.id ? <Btn tone="danger" onClick={onDelete}>Delete</Btn> : <span />}
-          <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 text-xs text-mist-400" title="Can be linked to the Epic page later"><Icon name="promote" className="h-4 w-4" /> Promote to Epic</span>
-            <Btn tone="accent" onClick={onSave}>Save</Btn>
-          </div>
+      <div className="mt-2 flex items-center justify-between gap-3 border-t border-mist-100 pt-4">
+        {draft.id ? <Btn tone="danger" onClick={onDelete}>Delete</Btn> : <span />}
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center gap-1.5 text-xs text-mist-400" title="Can be linked to the Epic page later"><Icon name="promote" className="h-4 w-4" /> Promote to Epic</span>
+          <Btn tone="accent" onClick={onSave}>Save</Btn>
         </div>
-      </aside>
-    </>
+      </div>
+    </Modal>
   );
 }
 
