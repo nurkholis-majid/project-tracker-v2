@@ -32,6 +32,7 @@ export function Icon({
   name, className = "h-4 w-4", strokeWidth = 1.9,
 }: { name: IconName; className?: string; strokeWidth?: number }) {
   const C = ICONS[name];
+  if (!C) return null; // jangan pernah render <undefined/> — cukup kosong daripada crash
   return <C className={className} strokeWidth={strokeWidth} />;
 }
 

@@ -318,7 +318,12 @@ export default function CardingPage() {
                   >
                     <Td className="text-center font-mono text-xs text-mist-400">
                       <span className="inline-flex items-center gap-1" title="Drag to reorder">
-                        <Icon name="grip" className="h-3.5 w-3.5 cursor-grab text-mist-300 opacity-0 group-hover:opacity-100" strokeWidth={2} />
+                        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"
+                          className="h-3.5 w-3.5 cursor-grab text-mist-300 opacity-0 group-hover:opacity-100">
+                          <circle cx="6" cy="4" r="1.2" /><circle cx="10" cy="4" r="1.2" />
+                          <circle cx="6" cy="8" r="1.2" /><circle cx="10" cy="8" r="1.2" />
+                          <circle cx="6" cy="12" r="1.2" /><circle cx="10" cy="12" r="1.2" />
+                        </svg>
                         {idx + 1}
                       </span>
                     </Td>
