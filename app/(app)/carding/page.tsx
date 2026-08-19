@@ -56,6 +56,10 @@ export default function CardingPage() {
   const [quickPoints, setQuickPoints] = useState(3);
   const [quickGroup, setQuickGroup] = useState("");
 
+  // Drag & drop state — hook WAJIB dideklarasikan sebelum early-return apa pun (mis. `if (loading)`).
+  const dragId = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
   // Requirements (from the Requirements board) offered as project-name suggestions.
   const [reqOptions, setReqOptions] = useState<{ code: string; title: string; description: string | null }[]>([]);
   useEffect(() => {
@@ -143,8 +147,6 @@ export default function CardingPage() {
   };
 
   // Drag & drop: pindahkan story ke posisi story tujuan, lalu tata ulang sort_order 1..n.
-  const dragId = useRef<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const reorder = (targetId: string) => {
     const fromId = dragId.current;
     dragId.current = null;
