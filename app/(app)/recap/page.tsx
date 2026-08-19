@@ -122,7 +122,7 @@ export default function RecapPage() {
                     <div className="mt-1 flex items-center gap-2">
                       <div className="w-28"><Progress pct={pct} /></div>
                       <span className="font-mono text-[10px] text-mist-400">
-                        {st?.donePoints ?? 0}/{st?.points ?? 0} pt · {pct}%
+                        {st?.donePoints ?? 0}/{st?.points ?? 0} pt · {st?.done ?? 0}/{st?.total ?? 0} stories · {pct}%
                       </span>
                     </div>
                   </div>

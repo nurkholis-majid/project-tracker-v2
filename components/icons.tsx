@@ -4,7 +4,7 @@ import {
   AlertTriangle, ArrowDown, ArrowDownAZ, ArrowRight, ArrowUp, ArrowUpRight, Briefcase,
   Calendar, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
   CircleCheck, Clock, Download, Eye, EyeOff, FileText, Flag, Flame, FlaskConical,
-  Hammer, Hash, House, Inbox, Layers, LayoutDashboard, Link2, ListChecks, Lock, LogOut,
+  Hammer, Hash, House, Inbox, Layers, LayoutDashboard, Link2, ListChecks, Lock, LogOut, GripVertical,
   MoreHorizontal, Package, PartyPopper, Pencil, Pin, Plus, Puzzle, RefreshCw, Rocket, Search,
   Server, Shield, Ship, Shuffle, SlidersHorizontal, Sparkles, Target, Timer, Trash2,
   Trophy, Wrench, X, Zap, type LucideIcon,
@@ -23,7 +23,7 @@ export const ICONS = {
   cleanup: Wrench, puzzle: Puzzle, merge: Shuffle, sortAlpha: ArrowDownAZ, recent: Clock,
   party: PartyPopper, sparkles: Sparkles, up: ArrowUp, down: ArrowDown, promote: ArrowUpRight,
   circle: Circle, testing: FlaskConical, toggle: SlidersHorizontal, flame: Flame,
-  prd: FileText, brd: Briefcase, inbox: Inbox, plus: Plus,
+  prd: FileText, brd: Briefcase, inbox: Inbox, plus: Plus, grip: GripVertical,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

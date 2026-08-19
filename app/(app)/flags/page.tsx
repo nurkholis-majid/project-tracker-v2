@@ -61,6 +61,30 @@ export default function FlagsPage() {
     setForm((f) => ({ ...f, epic_ids: ids, jira_key: keys || f?.jira_key || "" }));
   };
 
+  /** Export baris yang sedang tampil (mengikuti filter environment) ke CSV. */
+  const exportCsv = () => {
+    const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const head = ["Flag name", "Epics", "Description", "DEV", "UAT", "PROD", "Jira key"];
+    const lines = rows.map((f) =>
+      [
+        f.name,
+        (f.epic_ids ?? []).map((id) => epicById[id]?.name).filter(Boolean).join("; "),
+        f.description ?? "",
+        show(f.dev),
+        show(f.uat),
+        show(f.prod),
+        f.jira_key ?? "",
+      ].map(cell).join(",")
+    );
+    const csv = [head.map(cell).join(","), ...lines].join("\r\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `feature-flags-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <PageHead
@@ -76,6 +100,9 @@ export default function FlagsPage() {
             { value: "on", label: "TRUE in PROD" },
           ]}
         />
+        <Btn onClick={exportCsv} disabled={rows.length === 0}>
+          <span className="inline-flex items-center gap-1.5"><Icon name="download" className="h-4 w-4" /> Export CSV</span>
+        </Btn>
         <Btn tone="accent" onClick={() => setForm(blank())}>+ Feature flag</Btn>
       </PageHead>
 

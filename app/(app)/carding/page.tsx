@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCarding } from "@/lib/useCarding";
 import { estimate, fmtDate } from "@/lib/carding";
 import { CARDING_POINTS, type CardingProject, type CardingStory } from "@/lib/types";
@@ -140,6 +140,26 @@ export default function CardingPage() {
     if (!a || !b) return;
     patchStory(a.id, { sort_order: b.sort_order });
     patchStory(b.id, { sort_order: a.sort_order });
+  };
+
+  // Drag & drop: pindahkan story ke posisi story tujuan, lalu tata ulang sort_order 1..n.
+  const dragId = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const reorder = (targetId: string) => {
+    const fromId = dragId.current;
+    dragId.current = null;
+    setDragOverId(null);
+    if (!fromId || fromId === targetId) return;
+    const list = [...projStories]; // sudah urut sort_order
+    const from = list.findIndex((s) => s.id === fromId);
+    const to = list.findIndex((s) => s.id === targetId);
+    if (from === -1 || to === -1) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    // Simpan hanya yang sort_order-nya berubah supaya tulisan ke DB minimal.
+    list.forEach((s, i) => {
+      if (s.sort_order !== i + 1) patchStory(s.id, { sort_order: i + 1 });
+    });
   };
 
   const sprintCells = est ? Array.from({ length: est.sprintCount }, (_, i) => i + 1) : [];
@@ -286,8 +306,22 @@ export default function CardingPage() {
               </thead>
               <tbody>
                 {est!.packed.map((s, idx) => (
-                  <tr key={s.id} className={`group ${ROW}`}>
-                    <Td className="text-center font-mono text-xs text-mist-400">{idx + 1}</Td>
+                  <tr
+                    key={s.id}
+                    draggable
+                    onDragStart={(e) => { dragId.current = s.id; e.dataTransfer.effectAllowed = "move"; }}
+                    onDragOver={(e) => { e.preventDefault(); if (dragOverId !== s.id) setDragOverId(s.id); }}
+                    onDragLeave={() => setDragOverId((d) => (d === s.id ? null : d))}
+                    onDrop={() => reorder(s.id)}
+                    onDragEnd={() => { dragId.current = null; setDragOverId(null); }}
+                    className={`group ${ROW} ${dragOverId === s.id ? "bg-ocean-50 outline outline-2 -outline-offset-2 outline-ocean-300" : ""}`}
+                  >
+                    <Td className="text-center font-mono text-xs text-mist-400">
+                      <span className="inline-flex items-center gap-1" title="Drag to reorder">
+                        <Icon name="grip" className="h-3.5 w-3.5 cursor-grab text-mist-300 opacity-0 group-hover:opacity-100" strokeWidth={2} />
+                        {idx + 1}
+                      </span>
+                    </Td>
                     <Td className="font-medium text-ink-900">{s.title}</Td>
                     <Td>
                       {s.epic_group
