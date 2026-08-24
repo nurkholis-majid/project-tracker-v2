@@ -468,18 +468,28 @@ function StoryTimeline({ stories, epic }: { stories: Story[]; epic: Epic }) {
 
       {open && (
         <div className="border-t border-mist-100 p-3">
-          {/* axis + sprint labels */}
-          <div className="mb-1 flex gap-3">
-            <div className="w-44 shrink-0" />
-            <div className="w-9 shrink-0" />
-            <div className="relative h-4 flex-1">
-              <span className="absolute left-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMin)}</span>
-              <span className="absolute right-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMax)}</span>
-              {boundaries.map((b) => (
-                <span key={b.n} className="absolute -translate-x-1/2 font-mono text-[9px] text-ocean-500"
-                  style={{ left: `${Math.min(Math.max(b.x, 2), 98)}%` }}>S{b.n}</span>
-              ))}
+          {/* axis dates (top row) + sprint labels (row below), kept separate so they never overlap */}
+          <div className="mb-1 space-y-0.5">
+            <div className="flex gap-3">
+              <div className="w-44 shrink-0" />
+              <div className="w-9 shrink-0" />
+              <div className="relative h-3 flex-1">
+                <span className="absolute left-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMin)}</span>
+                <span className="absolute right-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMax)}</span>
+              </div>
             </div>
+            {boundaries.length > 0 && (
+              <div className="flex gap-3">
+                <div className="w-44 shrink-0" />
+                <div className="w-9 shrink-0" />
+                <div className="relative h-3 flex-1">
+                  {boundaries.map((b) => (
+                    <span key={b.n} className="absolute -translate-x-1/2 font-mono text-[9px] text-ocean-500"
+                      style={{ left: `${Math.min(Math.max(b.x, 2), 98)}%` }}>S{b.n}</span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
