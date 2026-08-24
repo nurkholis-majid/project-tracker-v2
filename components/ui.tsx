@@ -257,8 +257,8 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/50 p-3 sm:p-6" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className={`mt-4 w-full ${wide ? "max-w-4xl" : "max-w-xl"} rounded-xl bg-white shadow-card`}>
-        <div className="flex items-start justify-between gap-4 border-b border-mist-200 px-5 py-4">
+        className={`mt-4 flex max-h-[92vh] w-full flex-col ${wide ? "max-w-4xl" : "max-w-xl"} rounded-xl bg-white shadow-card`}>
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-mist-200 px-5 py-4">
           <div>
             <h3 className="text-base font-semibold text-ink-900">{title}</h3>
             {subtitle && <p className="mt-0.5 text-xs text-mist-600">{subtitle}</p>}
@@ -266,7 +266,7 @@ export function Modal({
           <button onClick={onClose} aria-label="Close"
             className="rounded-lg px-2 py-1 text-mist-400 hover:bg-mist-50 hover:text-ink-900"><Icon name="close" className="h-4 w-4" /></button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );
