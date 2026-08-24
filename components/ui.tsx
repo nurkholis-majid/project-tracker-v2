@@ -1,7 +1,7 @@
 "use client";
 
 import { JIRA_BROWSE, META, labelOf } from "@/lib/types";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Ic, Icon, iconFor } from "./icons";
 import { useCanEdit } from "@/lib/permissions";
 
@@ -143,6 +143,64 @@ export const optionsOf = (values: readonly string[]) =>
   values.map((v) => ({ value: v, label: labelOf(v) }));
 
 /** Pilihan pendek (2–4 opsi) — satu klik, tanpa buka dropdown. */
+export function Combobox({
+  value, onChange, options, placeholder = "Search…", empty = "No matches", w = "w-52", full,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  empty?: string;
+  w?: string;
+  full?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.value === value);
+  const needle = q.trim().toLowerCase();
+  const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  return (
+    <div ref={ref} className={`relative ${full ? "w-full" : w}`}>
+      <button type="button" onClick={() => { setOpen((o) => !o); setQ(""); }}
+        className={`${controlBase} flex w-full items-center justify-between gap-2`}>
+        <span className={`truncate ${selected ? "" : "text-mist-400"}`}>{selected ? selected.label : placeholder}</span>
+        <Icon name="caret" className="h-4 w-4 shrink-0 text-mist-400" />
+      </button>
+      {open && (
+        <div className="absolute left-0 z-40 mt-1 w-full min-w-[18rem] rounded-xl border border-mist-200 bg-white p-1 shadow-lg">
+          <div className="p-1">
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
+              className="w-full rounded-lg border border-mist-200 px-3 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-ocean-500" />
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 && <div className="px-3 py-3 text-sm text-mist-400">{empty}</div>}
+            {filtered.map((o) => {
+              const on = o.value === value;
+              return (
+                <button key={o.value} type="button"
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm ${
+                    on ? "bg-ocean-50 font-medium text-ocean-700" : "text-ink-700 hover:bg-mist-50"}`}>
+                  <span className="truncate">{o.label}</span>
+                  {on && <Icon name="check" className="ml-auto h-4 w-4 shrink-0 text-ocean-600" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Segmented({
   value, onChange, options,
 }: {

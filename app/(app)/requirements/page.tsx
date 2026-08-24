@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRequirements } from "@/lib/useRequirements";
+import { JIRA_BROWSE } from "@/lib/types";
 import { useCanEdit } from "@/lib/permissions";
 import {
   REQ_PRIORITIES, REQ_PRIORITY_META, REQ_CATEGORIES,
@@ -9,6 +10,21 @@ import {
 } from "@/lib/types";
 import { CreateBtn, Btn, ErrorBar, Label, Loading, Metric, Modal, PageHead, Segmented, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
+
+/** Resolve a reference link to a real destination.
+ *  Priority: explicit http(s) url → label that is itself a url →
+ *  Jira key (e.g. DLB-27055) → Jira browse url → otherwise none. */
+const JIRA_KEY_RE = /^[A-Za-z][A-Za-z0-9]*-\d+$/;
+function linkHref(l: { label?: string; url?: string }): string {
+  const url = (l.url ?? "").trim();
+  if (/^https?:\/\//i.test(url)) return url;
+  const label = (l.label ?? "").trim();
+  if (/^https?:\/\//i.test(label)) return label;
+  if (JIRA_KEY_RE.test(label)) return JIRA_BROWSE + label.toUpperCase();
+  if (url && url !== "#") return "https://" + url.replace(/^\/+/, "");
+  return "";
+}
+
 
 const STAGE_PALETTE = ["#98A2B3", "#6172F3", "#0E9384", "#F79009", "#DC6803", "#1A6AFF", "#2FC0AF", "#12B76A", "#F04438"];
 
@@ -369,7 +385,13 @@ function Drawer({
 
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const addAc = () => { if (acNew.trim()) { set({ criteria: [...draft.criteria, { text: acNew.trim(), done: false }] }); setAcNew(""); } };
-  const addLink = () => { if (lkLabel.trim()) { set({ links: [...draft.links, { label: lkLabel.trim(), url: lkUrl.trim() || "#" }] }); setLkLabel(""); setLkUrl(""); } };
+  const addLink = () => {
+    const label = lkLabel.trim();
+    if (!label) return;
+    const url = lkUrl.trim() || (JIRA_KEY_RE.test(label) ? JIRA_BROWSE + label.toUpperCase() : "");
+    set({ links: [...draft.links, { label, url }] });
+    setLkLabel(""); setLkUrl("");
+  };
 
   const chip = (on: boolean, extra: string) =>
     `rounded-full border px-3 py-1.5 text-xs font-medium ${on ? extra : "border-mist-200 bg-white text-ink-700 hover:bg-mist-50"}`;
@@ -457,7 +479,9 @@ function Drawer({
               {draft.links.map((l, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 text-[12px]">
                   <Icon name="link" className="h-3.5 w-3.5 text-mist-400" />
-                  <a href={l.url} target="_blank" rel="noreferrer" className="text-ocean-600 hover:underline">{l.label}</a>
+                  {(() => { const href = linkHref(l); return href
+                    ? <a href={href} target="_blank" rel="noreferrer" className="text-ocean-600 hover:underline">{l.label}</a>
+                    : <span className="text-mist-500">{l.label}</span>; })()}
                   <button onClick={() => set({ links: draft.links.filter((_, j) => j !== i) })}
                     className="ml-auto text-mist-400 hover:text-alert-600"><Icon name="close" className="h-4 w-4" /></button>
                 </div>

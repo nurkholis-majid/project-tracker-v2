@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCarding } from "@/lib/useCarding";
 import { estimate, fmtDate } from "@/lib/carding";
 import { CARDING_POINTS, type CardingProject, type CardingStory } from "@/lib/types";
-import { CreateBtn,
+import { Combobox, CreateBtn,
   Btn, Card, EmptyRow, ErrorBar, Field, FormActions, Label, Loading, Metric, Modal,
   PageHead, Progress, ROW, Select, Td, Th, inputCls,
 } from "@/components/ui";
@@ -173,10 +173,11 @@ export default function CardingPage() {
         sub="Break a project into stories, estimate each story’s points, then see the projected number of sprints and the finish date."
       >
         {projects.length > 0 && (
-          <Select
-            w="w-64"
+          <Combobox
+            w="w-72"
             value={selectedId}
             onChange={setSelectedId}
+            placeholder="Search projects…"
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
           />
         )}

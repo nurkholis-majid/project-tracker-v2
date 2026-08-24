@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import { fmt, num } from "@/lib/kpi";
 import { RELEASE_STATUS, STORY_PROGRESS, type Story } from "@/lib/types";
-import { CreateBtn,
+import { Combobox, CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
@@ -166,7 +166,7 @@ export default function StoriesPage() {
         title="Story"
       >
         <input className={filterCls + " w-52"} placeholder="Search stories / DLB-…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select w="w-52" value={epicF} onChange={setEpicF}
+        <Combobox w="w-60" value={epicF} onChange={setEpicF} placeholder="Search epics…"
           options={[
             { value: "all", label: "All epics" },
             { value: "none", label: "No epic" },

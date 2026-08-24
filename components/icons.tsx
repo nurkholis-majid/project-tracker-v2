@@ -2,7 +2,7 @@
 
 import {
   AlertTriangle, ArrowDown, ArrowDownAZ, ArrowRight, ArrowUp, ArrowUpRight, Briefcase,
-  Calendar, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
+  Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
   CircleCheck, Clock, Download, Eye, EyeOff, FileText, Flag, Flame, FlaskConical,
   Hammer, Hash, House, Inbox, Layers, LayoutDashboard, Link2, ListChecks, Lock, LogOut, GripVertical,
   MoreHorizontal, Package, PartyPopper, Pencil, Pin, Plus, Puzzle, RefreshCw, Rocket, Search,
@@ -15,7 +15,7 @@ export const ICONS = {
   dashboard: LayoutDashboard, home: House, trophy: Trophy, requirements: ListChecks,
   carding: Layers, epic: Package, story: FileText, deploy: Ship, release: Rocket,
   flag: Flag, systems: Server, sync: RefreshCw, signout: LogOut,
-  collapse: ChevronsLeft, expand: ChevronsRight, left: ChevronLeft, right: ChevronRight,
+  collapse: ChevronsLeft, expand: ChevronsRight, left: ChevronLeft, right: ChevronRight, caret: ChevronDown,
   search: Search, edit: Pencil, trash: Trash2, close: X, check: Check, more: MoreHorizontal,
   calendar: Calendar, link: Link2, download: Download, pin: Pin, clock: Clock,
   eye: Eye, eyeOff: EyeOff, lock: Lock, warn: AlertTriangle, done: CircleCheck,
