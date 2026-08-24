@@ -383,6 +383,7 @@ function MetaCell({ icon, label, value }: { icon: IconName; label: string; value
 const PROG_BAR: Record<string, string> = { Done: "bg-ocean-500", "In Dev": "bg-sun-500", Todo: "bg-mist-300" };
 
 function StoryTimeline({ stories, epic }: { stories: Story[]; epic: Epic }) {
+  const [open, setOpen] = useState(true);
   if (!stories.length) return null;
   const toT = (d: string) => new Date(d + "T00:00:00").getTime();
   const dated = stories.filter((s) => s.start_date && s.end_date);
@@ -419,50 +420,113 @@ function StoryTimeline({ stories, epic }: { stories: Story[]; epic: Epic }) {
   const estT = mode === "date" && epic.est_deploy ? toT(epic.est_deploy) : null;
   const showEst = estT != null && estT >= axisMin && estT <= axisMax;
 
+  // sprint metadata — distinct sprints + where each begins on the axis.
+  const sprintNums = Array.from(
+    new Set(stories.map((s) => s.sprint).filter((n): n is number => n != null))
+  ).sort((a, b) => a - b);
+  const sprintCount = sprintNums.length;
+
+  const boundaries =
+    mode === "date"
+      ? sprintNums
+          .map((n) => {
+            const starts = stories
+              .filter((s) => s.sprint === n && s.start_date)
+              .map((s) => toT(s.start_date!));
+            return { n, x: starts.length ? pos(Math.min(...starts)) : NaN };
+          })
+          .filter((b) => Number.isFinite(b.x))
+      : sprintNums.map((n) => ({ n, x: pos(n) }));
+
   const fmtD = (t: number) => {
     const d = new Date(t);
     return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
   };
   const axisLabel = (t: number) => (mode === "date" ? fmtD(t) : `Sprint ${t}`);
   const rows = [...items].sort((x, y) => (x.a ?? Infinity) - (y.a ?? Infinity));
+  const sprintOf = (s: Story) => (s.sprint != null ? `S${s.sprint}` : "—");
 
   return (
-    <div className="rounded-xl border border-mist-200 p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-mist-500">Development timeline</h3>
-        <div className="flex items-center gap-3 text-[10px] text-mist-500">
+    <div className="rounded-xl border border-mist-200">
+      <button onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left">
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-mist-500">
+          <Icon name="caret" className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`} />
+          Development timeline
+          {sprintCount > 0 && (
+            <span className="rounded-full bg-mist-100 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-mist-600">
+              {sprintCount} sprint{sprintCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-3 text-[10px] text-mist-500">
           {Object.entries(PROG_BAR).map(([k, c]) => (
             <span key={k} className="inline-flex items-center gap-1"><span className={`h-2.5 w-2.5 rounded-sm ${c}`} />{k}</span>
           ))}
-        </div>
-      </div>
-      <div className="mb-1 flex justify-between font-mono text-[10px] text-mist-400">
-        <span>{axisLabel(axisMin)}</span><span>{axisLabel(axisMax)}</span>
-      </div>
-      <div className="flex gap-3">
-        <div className="w-44 shrink-0 space-y-1.5">
-          {rows.map(({ s }) => (
-            <div key={s.id} className="flex h-4 items-center truncate text-[11px] text-ink-700" title={s.title}>{s.title}</div>
-          ))}
-        </div>
-        <div className="relative flex-1 space-y-1.5">
-          {showToday && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-alert-500" style={{ left: `${pos(now)}%` }} title="Today" />}
-          {showEst && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-ocean-400" style={{ left: `${pos(estT!)}%` }} title="Est. deploy" />}
-          {rows.map(({ s, a, b }) => (
-            <div key={s.id} className="relative h-4 rounded bg-mist-100">
-              {a != null && b != null ? (
-                <div className={`absolute inset-y-0 rounded ${PROG_BAR[s.progress] ?? "bg-mist-300"}`}
-                  style={{ left: `${pos(a)}%`, width: `${Math.max(pos(b) - pos(a), 2)}%` }}
-                  title={mode === "date" ? `${fmt(s.start_date)} – ${fmt(s.end_date)}` : `Sprint ${s.sprint}`} />
-              ) : (
-                <span className="absolute inset-y-0 left-1 flex items-center text-[9px] text-mist-400">no dates</span>
-              )}
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-mist-100 p-3">
+          {/* axis + sprint labels */}
+          <div className="mb-1 flex gap-3">
+            <div className="w-44 shrink-0" />
+            <div className="w-9 shrink-0" />
+            <div className="relative h-4 flex-1">
+              <span className="absolute left-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMin)}</span>
+              <span className="absolute right-0 font-mono text-[10px] text-mist-400">{axisLabel(axisMax)}</span>
+              {boundaries.map((b) => (
+                <span key={b.n} className="absolute -translate-x-1/2 font-mono text-[9px] text-ocean-500"
+                  style={{ left: `${Math.min(Math.max(b.x, 2), 98)}%` }}>S{b.n}</span>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="flex gap-3">
+            {/* story titles */}
+            <div className="w-44 shrink-0 space-y-1.5">
+              {rows.map(({ s }) => (
+                <div key={s.id} className="flex h-4 items-center truncate text-[11px] text-ink-700" title={s.title}>{s.title}</div>
+              ))}
+            </div>
+            {/* sprint per story */}
+            <div className="w-9 shrink-0 space-y-1.5">
+              {rows.map(({ s }) => (
+                <div key={s.id} className="flex h-4 items-center font-mono text-[10px] text-mist-500">{sprintOf(s)}</div>
+              ))}
+            </div>
+            {/* tracks */}
+            <div className="relative flex-1 space-y-1.5">
+              {/* sprint gridlines */}
+              {boundaries.map((b) => (
+                <div key={b.n} className="pointer-events-none absolute inset-y-0 z-0 w-px bg-mist-200" style={{ left: `${b.x}%` }} />
+              ))}
+              {showToday && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-alert-500" style={{ left: `${pos(now)}%` }} title="Today" />}
+              {showEst && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-ocean-400" style={{ left: `${pos(estT!)}%` }} title="Est. deploy" />}
+              {rows.map(({ s, a, b }) => (
+                <div key={s.id} className="relative z-[1] h-4 rounded bg-mist-100">
+                  {a != null && b != null ? (
+                    <div className={`absolute inset-y-0 rounded ${PROG_BAR[s.progress] ?? "bg-mist-300"}`}
+                      style={{ left: `${pos(a)}%`, width: `${Math.max(pos(b) - pos(a), 2)}%` }}
+                      title={`${mode === "date" ? `${fmt(s.start_date)} – ${fmt(s.end_date)}` : ""}${s.sprint != null ? `  ·  Sprint ${s.sprint}` : ""}`} />
+                  ) : (
+                    <span className="absolute inset-y-0 left-1 flex items-center text-[9px] text-mist-400">no dates</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {mode === "sprint" && <p className="mt-2 text-[10px] text-mist-400">Stories don't have start/end dates yet — showing by sprint number.</p>}
+          {showToday && (
+            <p className="mt-2 flex items-center gap-3 text-[10px] text-mist-400">
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-px bg-alert-500" /> today</span>
+              {showEst && <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-px bg-ocean-400" /> est. deploy</span>}
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-px bg-mist-300" /> sprint start</span>
+            </p>
+          )}
         </div>
-      </div>
-      {mode === "sprint" && <p className="mt-2 text-[10px] text-mist-400">Stories don't have start/end dates yet — showing by sprint number.</p>}
-      {showToday && <p className="mt-2 text-[10px] text-mist-400"><span className="inline-block h-2 w-px bg-alert-500 align-middle" /> today &nbsp; {showEst && <><span className="inline-block h-2 w-px bg-ocean-400 align-middle" /> est. deploy</>}</p>}
+      )}
     </div>
   );
 }
