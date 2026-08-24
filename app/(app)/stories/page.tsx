@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import { fmt, num } from "@/lib/kpi";
 import { RELEASE_STATUS, STORY_PROGRESS, type Story } from "@/lib/types";
-import {
+import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
@@ -175,7 +175,7 @@ export default function StoriesPage() {
         <Select w="w-40" value={progF} onChange={setProgF}
           options={[{ value: "all", label: "All progress" }, ...optionsOf(STORY_PROGRESS)]} />
         <Select w="w-48" value={sort} onChange={(v) => setSort(v as SortKey)} options={SORTS} />
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ Story</Btn>
+        <CreateBtn onClick={() => setForm(blank())}>+ Story</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />

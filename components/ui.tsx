@@ -3,6 +3,7 @@
 import { JIRA_BROWSE, META, labelOf } from "@/lib/types";
 import { useEffect, type ReactNode } from "react";
 import { Ic, Icon, iconFor } from "./icons";
+import { useCanEdit } from "@/lib/permissions";
 
 /* ---------------------------------------------------------------- badge */
 export function Badge({ v }: { v?: string | null }) {
@@ -29,11 +30,14 @@ export function StatusSelect({
   className?: string;
 }) {
   const m = META[value] ?? { icon: "•", tone: "bg-mist-100 text-ink-700 ring-mist-200" };
+  const canEdit = useCanEdit();
   return (
     <select
       value={value}
+      disabled={!canEdit}
+      title={canEdit ? undefined : "View-only access"}
       onChange={(e) => onChange(e.target.value)}
-      className={`cursor-pointer appearance-none rounded-full py-1 pl-2 pr-6 text-xs font-medium ring-1 ring-inset transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-sun-500 ${m.tone} ${className}`}
+      className={`cursor-pointer appearance-none rounded-full py-1 pl-2 pr-6 text-xs font-medium ring-1 ring-inset transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-sun-500 disabled:cursor-not-allowed disabled:opacity-60 ${m.tone} ${className}`}
       style={{
         backgroundImage:
           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%234B5190' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E\")",
@@ -74,13 +78,14 @@ export const inputCls = `w-full ${controlBase}`;
 export const filterCls = controlBase;
 
 export function Btn({
-  children, onClick, tone = "ghost", type = "button", disabled, className = "",
+  children, onClick, tone = "ghost", type = "button", disabled, title, className = "",
 }: {
   children: ReactNode;
   onClick?: () => void;
   tone?: "solid" | "accent" | "ghost" | "danger";
   type?: "button" | "submit";
   disabled?: boolean;
+  title?: string;
   className?: string;
 }) {
   const tones = {
@@ -95,6 +100,7 @@ export function Btn({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${tones[tone]} ${className}`}
     >
       {children}
@@ -208,14 +214,33 @@ export function Modal({
   );
 }
 
+/** A mutating action button that disables itself for view-only roles. */
+export function CreateBtn({
+  children, onClick, tone = "accent", type = "button", disabled, className = "",
+}: {
+  children: ReactNode; onClick?: () => void; tone?: "solid" | "accent" | "ghost" | "danger";
+  type?: "button" | "submit"; disabled?: boolean; className?: string;
+}) {
+  const canEdit = useCanEdit();
+  return (
+    <Btn tone={tone} type={type} onClick={canEdit ? onClick : undefined}
+      disabled={disabled || !canEdit} title={canEdit ? undefined : "View-only access"} className={className}>
+      {children}
+    </Btn>
+  );
+}
+
 export const FormActions = ({ onClose, onSave, saveLabel = "Save" }: {
   onClose: () => void; onSave: () => void; saveLabel?: string;
-}) => (
-  <div className="flex justify-end gap-2 border-t border-mist-100 pt-4">
-    <Btn onClick={onClose}>Cancel</Btn>
-    <Btn tone="solid" onClick={onSave}>{saveLabel}</Btn>
-  </div>
-);
+}) => {
+  const canEdit = useCanEdit();
+  return (
+    <div className="flex justify-end gap-2 border-t border-mist-100 pt-4">
+      <Btn onClick={onClose}>Cancel</Btn>
+      <Btn tone="solid" onClick={onSave} disabled={!canEdit} title={canEdit ? undefined : "View-only access"}>{saveLabel}</Btn>
+    </div>
+  );
+};
 
 /* --------------------------------------------------------------- table */
 export const Th = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
@@ -263,14 +288,24 @@ export const EmptyRow = ({ cols, msg, icon = "🗂️" }: { cols: number; msg: s
   </tr>
 );
 
-export const RowActions = ({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) => (
-  <div className="flex gap-1">
-    <button onClick={onEdit} title="Edit"
-      className="rounded-md px-2 py-1 text-mist-600 hover:bg-mist-50 hover:text-ocean-600"><Icon name="edit" className="h-4 w-4" /></button>
-    <button onClick={onDelete} title="Delete"
-      className="rounded-md px-2 py-1 text-mist-400 hover:bg-alert-100 hover:text-alert-600"><Icon name="trash" className="h-4 w-4" /></button>
-  </div>
-);
+export const RowActions = ({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) => {
+  const canEdit = useCanEdit();
+  if (!canEdit)
+    return (
+      <div className="flex gap-1">
+        <button disabled title="View-only access" className="cursor-not-allowed rounded-md px-2 py-1 text-mist-300"><Icon name="edit" className="h-4 w-4" /></button>
+        <button disabled title="View-only access" className="cursor-not-allowed rounded-md px-2 py-1 text-mist-300"><Icon name="trash" className="h-4 w-4" /></button>
+      </div>
+    );
+  return (
+    <div className="flex gap-1">
+      <button onClick={onEdit} title="Edit"
+        className="rounded-md px-2 py-1 text-mist-600 hover:bg-mist-50 hover:text-ocean-600"><Icon name="edit" className="h-4 w-4" /></button>
+      <button onClick={onDelete} title="Delete"
+        className="rounded-md px-2 py-1 text-mist-400 hover:bg-alert-100 hover:text-alert-600"><Icon name="trash" className="h-4 w-4" /></button>
+    </div>
+  );
+};
 
 export function JiraLink({ k }: { k?: string | null }) {
   if (!k) return <span className="text-xs text-mist-400">—</span>;

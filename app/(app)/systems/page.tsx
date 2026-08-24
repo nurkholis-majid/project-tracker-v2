@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import { ENVIRONMENTS, type Environment, type System } from "@/lib/types";
-import {
+import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, Loading, Modal,
   PageHead, ROW, RowActions, Select, Td, Th, filterCls, inputCls,
 } from "@/components/ui";
@@ -98,7 +98,7 @@ export default function SystemsPage() {
             ...ENVIRONMENTS.map((e) => ({ value: e, label: e.toUpperCase() })),
           ]}
         />
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ System</Btn>
+        <CreateBtn onClick={() => setForm(blank())}>+ System</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />

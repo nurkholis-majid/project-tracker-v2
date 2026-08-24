@@ -5,47 +5,58 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Icon, type IconName } from "@/components/icons";
+import { PermProvider, usePerm, type Level, type MenuKey } from "@/lib/permissions";
 
 /** Nav grouped by phase of work so it's easy to scan. */
-const NAV_GROUPS: { section: string; items: { href: string; icon: IconName; label: string }[] }[] = [
+const NAV_GROUPS: { section: string; items: { href: string; icon: IconName; label: string; menu: MenuKey }[] }[] = [
   {
     section: "Overview",
     items: [
-      { href: "/",        icon: "home",   label: "Overview" },
-      { href: "/recap",   icon: "trophy", label: "Recap Semester" },
+      { href: "/",        icon: "home",   label: "Overview",        menu: "overview" },
+      { href: "/recap",   icon: "trophy", label: "Recap Semester",  menu: "recap" },
     ],
   },
   {
     section: "Planning",
     items: [
-      { href: "/requirements", icon: "requirements", label: "Requirements" },
-      { href: "/carding", icon: "carding", label: "Carding" },
-      { href: "/epics",   icon: "epic",   label: "Epic" },
-      { href: "/stories", icon: "story",  label: "Story" },
+      { href: "/requirements", icon: "requirements", label: "Requirements", menu: "requirements" },
+      { href: "/carding", icon: "carding", label: "Carding", menu: "carding" },
+      { href: "/epics",   icon: "epic",   label: "Epic",    menu: "epics" },
+      { href: "/stories", icon: "story",  label: "Story",   menu: "stories" },
     ],
   },
   {
     section: "Delivery",
     items: [
-      { href: "/deploy",   icon: "deploy",  label: "Need to Deploy" },
-      { href: "/releases", icon: "release", label: "Release" },
-      { href: "/flags",    icon: "flag",    label: "Feature Flag" },
+      { href: "/deploy",   icon: "deploy",  label: "Need to Deploy", menu: "deploy" },
+      { href: "/releases", icon: "release", label: "Release",        menu: "releases" },
+      { href: "/flags",    icon: "flag",    label: "Feature Flag",   menu: "flags" },
     ],
   },
   {
     section: "Reference",
     items: [
-      { href: "/systems", icon: "systems", label: "Systems" },
-      { href: "/sync",    icon: "sync",    label: "Jira Sync" },
+      { href: "/systems", icon: "systems", label: "Systems",   menu: "systems" },
+      { href: "/sync",    icon: "sync",    label: "Jira Sync", menu: "sync" },
     ],
   },
 ];
 
 const COLLAPSE_KEY = "pt.sidebar.collapsed";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
+  const perm = usePerm();
+
+  // Effective level for a menu — permissive until RBAC is active in the DB.
+  const lvl = (menu: MenuKey): Level =>
+    perm.loading || !perm.active ? "edit" : (perm.levels[menu] ?? "none");
+
+  // Hide menus the role has no access to; drop groups that end up empty.
+  const groups = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((n) => lvl(n.menu) !== "none") }))
+    .filter((g) => g.items.length > 0);
 
   // Status ciutkan sidebar diingat antar-kunjungan (hanya berpengaruh di layar lebar).
   const [collapsed, setCollapsed] = useState(false);
@@ -65,13 +76,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
-  // Label & judul-grup disembunyikan hanya di desktop saat diciutkan;
-  // di mobile (nav horizontal) label selalu tampil.
   const hideOnCollapse = collapsed ? "lg:hidden" : "";
+
+  const navLink = (n: { href: string; icon: IconName; label: string }) => {
+    const active = path === n.href;
+    return (
+      <Link
+        key={n.href}
+        href={n.href}
+        title={collapsed ? n.label : undefined}
+        className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] transition-colors lg:mx-1 ${
+          collapsed ? "lg:justify-center lg:px-2" : ""
+        } ${
+          active
+            ? "bg-ocean-100 font-semibold text-ocean-600"
+            : "text-ink-500 hover:bg-mist-50 hover:text-ink-900"
+        }`}
+      >
+        <span className="grid place-items-center"><Icon name={n.icon} className="h-[18px] w-[18px]" /></span>
+        <span className={hideOnCollapse}>{n.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen lg:flex">
-      {/* Di layar kecil ini jadi header yang menempel di atas; di desktop jadi sidebar putih penuh. */}
       <aside
         className={`z-30 border-mist-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:flex lg:flex-col lg:border-r ${
           collapsed ? "lg:w-[4.5rem]" : "lg:w-60"
@@ -84,7 +113,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Project Tracker
             </span>
           </Link>
-          {/* Keluar (mobile) — ikut di header supaya tidak perlu scroll. */}
           <button
             onClick={signOut}
             className="rounded-lg px-3 py-1.5 text-xs text-ocean-600 hover:bg-mist-50 lg:hidden"
@@ -94,9 +122,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="no-scrollbar flex gap-1 overflow-x-auto px-2 pb-2 lg:flex-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-2 lg:py-3">
-          {NAV_GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.section} className="flex gap-1 lg:block lg:gap-0">
-              {/* Judul grup: hanya desktop & saat tidak diciutkan. */}
               <div
                 className={`hidden px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-mist-400 first:pt-1 ${
                   collapsed ? "" : "lg:block"
@@ -104,31 +131,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 {group.section}
               </div>
-              {group.items.map((n) => {
-                const active = path === n.href;
-                return (
-                  <Link
-                    key={n.href}
-                    href={n.href}
-                    title={collapsed ? n.label : undefined}
-                    className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] transition-colors lg:mx-1 ${
-                      collapsed ? "lg:justify-center lg:px-2" : ""
-                    } ${
-                      active
-                        ? "bg-ocean-100 font-semibold text-ocean-600"
-                        : "text-ink-500 hover:bg-mist-50 hover:text-ink-900"
-                    }`}
-                  >
-                    <span className="grid place-items-center"><Icon name={n.icon} className="h-[18px] w-[18px]" /></span>
-                    <span className={hideOnCollapse}>{n.label}</span>
-                  </Link>
-                );
-              })}
+              {group.items.map(navLink)}
             </div>
           ))}
+
+          {/* Admin-only Access menu */}
+          {perm.isAdmin && (
+            <div className="flex gap-1 lg:block lg:gap-0">
+              <div
+                className={`hidden px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-mist-400 ${
+                  collapsed ? "" : "lg:block"
+                }`}
+              >
+                Admin
+              </div>
+              {navLink({ href: "/access", icon: "lock", label: "Access" })}
+            </div>
+          )}
         </nav>
 
-        {/* Footer (desktop): ciutkan/lebarkan + keluar. */}
         <div className="hidden border-t border-mist-100 p-2 lg:block">
           <button
             onClick={toggleCollapse}
@@ -155,5 +176,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main className="min-w-0 flex-1 p-4 lg:p-8">{children}</main>
     </div>
+  );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <PermProvider>
+      <Shell>{children}</Shell>
+    </PermProvider>
   );
 }

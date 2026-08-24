@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { SyncRun } from "@/lib/types";
-import { Btn, Card, EmptyRow, ErrorBar, Field, Label, Loading, PageHead, Td, Th, inputCls } from "@/components/ui";
+import { CreateBtn, Btn, Card, EmptyRow, ErrorBar, Field, Label, Loading, PageHead, Td, Th, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
 export default function SyncPage() {
@@ -89,9 +89,9 @@ export default function SyncPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Btn tone="accent" onClick={run} disabled={busy}>
+            <CreateBtn tone="accent" onClick={run} disabled={busy}>
               {busy ? "Pulling data…" : <span className="inline-flex items-center gap-1.5"><Icon name="sync" className="h-4 w-4" /> Pull now</span>}
-            </Btn>
+            </CreateBtn>
             {result && <span className="text-sm text-ocean-600">{result}</span>}
           </div>
         </div>

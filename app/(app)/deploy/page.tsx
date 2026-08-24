@@ -5,7 +5,7 @@ import { useTracker } from "@/lib/useTracker";
 import { fmt, num } from "@/lib/kpi";
 import { RELEASE_STATUS, type Story } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
-import {
+import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, JiraLink, Loading, Metric, PageHead, ROW, Select,
   StatusSelect, Td, Th, filterCls,
 } from "@/components/ui";
@@ -120,10 +120,10 @@ export default function DeployPage() {
               ...data.releases.map((r) => ({ value: r.id, label: `v${r.fix_version}` })),
             ]}
           />
-          <Btn tone="solid" onClick={bulkAssign} disabled={!target || busy}>
+          <CreateBtn tone="solid" onClick={bulkAssign} disabled={!target || busy}>
             Assign to release
-          </Btn>
-          <Btn onClick={bulkDeployed} disabled={busy}><span className="inline-flex items-center gap-1.5"><Icon name="done" className="h-4 w-4" /> Mark Deployed</span></Btn>
+          </CreateBtn>
+          <CreateBtn tone="ghost" onClick={bulkDeployed} disabled={busy}><span className="inline-flex items-center gap-1.5"><Icon name="done" className="h-4 w-4" /> Mark Deployed</span></CreateBtn>
           <Btn onClick={() => setPicked(new Set())}>Cancel</Btn>
         </div>
       )}

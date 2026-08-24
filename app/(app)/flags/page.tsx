@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import type { Epic, Flag } from "@/lib/types";
-import {
+import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, ROW, RowActions, Select, Td, Th, inputCls,
 } from "@/components/ui";
@@ -103,7 +103,7 @@ export default function FlagsPage() {
         <Btn onClick={exportCsv} disabled={rows.length === 0}>
           <span className="inline-flex items-center gap-1.5"><Icon name="download" className="h-4 w-4" /> Export CSV</span>
         </Btn>
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ Feature flag</Btn>
+        <CreateBtn onClick={() => setForm(blank())}>+ Feature flag</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />

@@ -5,7 +5,7 @@ import { useTracker } from "@/lib/useTracker";
 import { epicStats, fmt, num } from "@/lib/kpi";
 import { EPIC_STATUS, STORY_PROGRESS, labelOf, type Epic, type Story } from "@/lib/types";
 import { epicWindow } from "@/lib/kpi";
-import {
+import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
@@ -84,7 +84,7 @@ export default function EpicsPage() {
           onChange={(v) => setSort(v as SortKey)}
           options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
         />
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ Epic</Btn>
+        <CreateBtn onClick={() => setForm(blank())}>+ Epic</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />

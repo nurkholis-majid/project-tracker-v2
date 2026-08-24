@@ -5,7 +5,7 @@ import { useTracker } from "@/lib/useTracker";
 import { fmt, num } from "@/lib/kpi";
 import { DEPLOY_STATUS, type Release, type Story } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
-import {
+import { CreateBtn,
   Badge, Btn, ErrorBar, Field, FormActions, JiraLink, Label, Loading, Modal, PageHead,
   RowActions, Select, StatusSelect, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
@@ -43,7 +43,7 @@ export default function ReleasesPage() {
           onChange={setFilter}
           options={[{ value: "all", label: "All releases" }, ...optionsOf(DEPLOY_STATUS)]}
         />
-        <Btn tone="accent" onClick={() => setForm(blank())}>+ Fix version</Btn>
+        <CreateBtn onClick={() => setForm(blank())}>+ Fix version</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />

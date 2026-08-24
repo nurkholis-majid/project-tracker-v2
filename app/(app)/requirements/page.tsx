@@ -2,11 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRequirements } from "@/lib/useRequirements";
+import { useCanEdit } from "@/lib/permissions";
 import {
   REQ_PRIORITIES, REQ_PRIORITY_META, REQ_CATEGORIES,
   type ReqCard, type ReqCategory, type ReqCriterion, type ReqLink, type ReqPriority, type ReqStage,
 } from "@/lib/types";
-import { Btn, ErrorBar, Label, Loading, Metric, Modal, PageHead, Segmented, inputCls } from "@/components/ui";
+import { CreateBtn, Btn, ErrorBar, Label, Loading, Metric, Modal, PageHead, Segmented, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
 const STAGE_PALETTE = ["#98A2B3", "#6172F3", "#0E9384", "#F79009", "#DC6803", "#1A6AFF", "#2FC0AF", "#12B76A", "#F04438"];
@@ -34,6 +35,7 @@ type Draft = {
 
 export default function RequirementsPage() {
   const { stages, cards, loading, error, save, remove, patchCard, patchStage } = useRequirements();
+  const canEdit = useCanEdit();
 
   const [cat, setCat] = useState<"All" | ReqCategory>("All");
   const [q, setQ] = useState("");
@@ -168,8 +170,8 @@ export default function RequirementsPage() {
           onChange={(v) => setCat(v as "All" | ReqCategory)}
           options={[{ value: "All", label: "All" }, ...REQ_CATEGORIES.map((c) => ({ value: c, label: c }))]}
         />
-        <Btn onClick={addStage}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> Add stage</span></Btn>
-        <Btn tone="accent" onClick={() => openNew()}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> New requirement</span></Btn>
+        <CreateBtn tone="ghost" onClick={addStage}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> Add stage</span></CreateBtn>
+        <CreateBtn onClick={() => openNew()}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> New requirement</span></CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />
@@ -317,16 +319,19 @@ export default function RequirementsPage() {
                 {list.length === 0 && <div className="py-3 text-center text-[11px] text-mist-400">Drop a requirement here</div>}
               </div>
 
+              {canEdit && (
               <button
                 onClick={() => openNew(stage.id)}
                 className="mx-2 mb-2 w-[calc(100%-1rem)] rounded-lg border border-dashed border-mist-200 py-1.5 text-left text-xs text-mist-600 hover:border-ocean-500 hover:bg-white hover:text-ocean-600"
               >
                 + Add requirement
               </button>
+              )}
             </div>
           );
         })}
 
+        {canEdit && (
         <button
           onClick={addStage}
           title="Add stage"
@@ -334,6 +339,7 @@ export default function RequirementsPage() {
         >
           <Icon name="plus" className="h-5 w-5" />
         </button>
+        )}
       </div>
 
       {draft && (

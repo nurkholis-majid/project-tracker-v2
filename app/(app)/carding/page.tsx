@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCarding } from "@/lib/useCarding";
 import { estimate, fmtDate } from "@/lib/carding";
 import { CARDING_POINTS, type CardingProject, type CardingStory } from "@/lib/types";
-import {
+import { CreateBtn,
   Btn, Card, EmptyRow, ErrorBar, Field, FormActions, Label, Loading, Metric, Modal,
   PageHead, Progress, ROW, Select, Td, Th, inputCls,
 } from "@/components/ui";
@@ -180,7 +180,7 @@ export default function CardingPage() {
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
           />
         )}
-        <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ Project</Btn>
+        <CreateBtn onClick={() => setProjForm(blankProject())}>+ Project</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />
@@ -193,7 +193,7 @@ export default function CardingPage() {
             Create a project to start breaking an initiative into stories and estimating the effort.
           </p>
           <div className="mt-4">
-            <Btn tone="accent" onClick={() => setProjForm(blankProject())}>+ New project</Btn>
+            <CreateBtn onClick={() => setProjForm(blankProject())}>+ New project</CreateBtn>
           </div>
         </div>
       ) : (
@@ -206,8 +206,8 @@ export default function CardingPage() {
                 {project.description && <p className="mt-0.5 text-sm text-mist-600">{project.description}</p>}
               </div>
               <div className="flex shrink-0 gap-2">
-                <Btn onClick={() => setProjForm(project)}><span className="inline-flex items-center gap-1.5"><Icon name="edit" className="h-4 w-4" /> Edit</span></Btn>
-                <Btn tone="danger" onClick={deleteProject}><span className="inline-flex items-center gap-1.5"><Icon name="trash" className="h-4 w-4" /> Delete</span></Btn>
+                <CreateBtn tone="ghost" onClick={() => setProjForm(project)}><span className="inline-flex items-center gap-1.5"><Icon name="edit" className="h-4 w-4" /> Edit</span></CreateBtn>
+                <CreateBtn tone="danger" onClick={deleteProject}><span className="inline-flex items-center gap-1.5"><Icon name="trash" className="h-4 w-4" /> Delete</span></CreateBtn>
               </div>
             </div>
 
@@ -281,7 +281,7 @@ export default function CardingPage() {
               <Label>Point</Label>
               <div className="mt-1"><PointPicker value={quickPoints} onChange={setQuickPoints} /></div>
             </div>
-            <Btn tone="accent" onClick={addQuickStory}>+ Add</Btn>
+            <CreateBtn onClick={addQuickStory}>+ Add</CreateBtn>
           </div>
 
           {/* ---------- Task list + gantt sprint ---------- */}
