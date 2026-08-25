@@ -91,7 +91,12 @@ export default function StoriesPage() {
   const flat = useMemo(() => {
     const list = [...filtered];
     if (single) return list.sort(byJiraKey);
-    if (sort === "sprint") list.sort(bySprintDesc);
+    if (sort === "sprint")
+      list.sort((a, b) => {
+        const na = a.sprint == null, nb = b.sprint == null;
+        if (na || nb) return na === nb ? 0 : na ? 1 : -1;
+        return num(b.sprint) - num(a.sprint) || keyNo(a) - keyNo(b);
+      });
     if (sort === "point") list.sort((a, b) => RANK[a.progress] - RANK[b.progress] || num(b.story_points) - num(a.story_points));
     if (sort === "judul") list.sort((a, b) => a.title.localeCompare(b.title));
     return list;
@@ -132,13 +137,15 @@ export default function StoriesPage() {
           onChange={(v) => patch("stories", s.id, { progress: v })}
         />
       </Td>
-      <Td className="font-mono text-xs">{relOf(s.release_id) ?? "—"}</Td>
       <Td>
-        <StatusSelect
-          value={s.release_status}
-          options={RELEASE_STATUS}
-          onChange={(v) => patch("stories", s.id, { release_status: v })}
-        />
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-xs text-mist-600">{relOf(s.release_id) ?? "—"}</span>
+          <StatusSelect
+            value={s.release_status}
+            options={RELEASE_STATUS}
+            onChange={(v) => patch("stories", s.id, { release_status: v })}
+          />
+        </div>
       </Td>
       <Td>
         <RowActions onEdit={() => setForm(s)} onDelete={() => confirm(`Delete story "${s.title}"?`) && remove("stories", s.id)} />
@@ -154,8 +161,7 @@ export default function StoriesPage() {
       <Th className="w-20 text-right">Sprint</Th>
       <Th className="w-28">End date</Th>
       <Th className="w-36">Progress</Th>
-      <Th className="w-24">Fix ver.</Th>
-      <Th className="w-44">Status release</Th>
+      <Th className="w-48">Release</Th>
       <Th className="w-20" />
     </tr>
   );
@@ -192,7 +198,7 @@ export default function StoriesPage() {
                 return (
                   <Fragment key={g.id}>
                     <tr>
-                      <td colSpan={9} className="border-b border-mist-200 bg-ink-900 p-0">
+                      <td colSpan={8} className="border-b border-mist-200 bg-ink-900 p-0">
                         <button onClick={() => toggleGroup(g.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-ink-800">
                           <span className="font-mono text-xs text-sky-400">{open ? "▾" : "▸"}</span>
                           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
@@ -212,9 +218,37 @@ export default function StoriesPage() {
                 );
               })}
 
-            {sort !== "epic" && flat.map((s) => <Row key={s.id} s={s} />)}
+            {sort === "sprint" && (() => {
+              const meta = new Map<string, { n: number; pts: number }>();
+              flat.forEach((s) => {
+                const k = s.sprint == null ? "—" : String(s.sprint);
+                const m = meta.get(k) ?? { n: 0, pts: 0 };
+                m.n += 1; m.pts += num(s.story_points); meta.set(k, m);
+              });
+              let last: string | null = null;
+              const out: JSX.Element[] = [];
+              flat.forEach((s) => {
+                const k = s.sprint == null ? "—" : String(s.sprint);
+                if (k !== last) {
+                  last = k;
+                  const m = meta.get(k)!;
+                  out.push(
+                    <tr key={`sp-${k}`}>
+                      <td colSpan={8} className="border-b border-mist-200 bg-mist-50 px-3 py-1.5">
+                        <span className="text-xs font-semibold text-ink-700">{k === "—" ? "No sprint" : `Sprint ${k}`}</span>
+                        <span className="ml-2 font-mono text-[10px] text-mist-400">{m.n} stories · {m.pts} pt</span>
+                      </td>
+                    </tr>
+                  );
+                }
+                out.push(<Row key={s.id} s={s} />);
+              });
+              return out;
+            })()}
 
-            {filtered.length === 0 && <EmptyRow cols={9} icon="📝" msg="No stories match this filter." />}
+            {sort !== "epic" && sort !== "sprint" && flat.map((s) => <Row key={s.id} s={s} />)}
+
+            {filtered.length === 0 && <EmptyRow cols={8} icon="📝" msg="No stories match this filter." />}
           </tbody>
         </table>
       </Card>
@@ -268,8 +302,9 @@ export default function StoriesPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Fix version">
-                <Select full value={form.release_id ?? ""} onChange={(v) => setForm({ ...form, release_id: v || null })}
-                  options={[{ value: "", label: "— not in a release —" }, ...data.releases.map((r) => ({ value: r.id, label: `v${r.fix_version}` }))]} />
+                <Combobox full value={form.release_id ?? ""} onChange={(v) => setForm({ ...form, release_id: v || null })}
+                  placeholder="Search fix version…"
+                  options={[{ value: "", label: "— not in a release —" }, ...data.releases.map((r) => ({ value: r.id, label: r.fix_version }))]} />
               </Field>
               <Field label="Status release">
                 <Select full value={form.release_status ?? "-"}

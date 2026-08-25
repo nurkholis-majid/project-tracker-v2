@@ -156,26 +156,49 @@ export function Combobox({
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number; width: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const selected = options.find((o) => o.value === value);
   const needle = q.trim().toLowerCase();
   const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
 
+  // Position the menu with fixed coordinates so it is never clipped by a
+  // scrolling parent (e.g. inside a modal body). Flip up when short on space.
+  const place = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.max(r.width, 240);
+    const spaceBelow = window.innerHeight - r.bottom;
+    if (spaceBelow < 300 && r.top > spaceBelow) setPos({ left: r.left, bottom: window.innerHeight - r.top + 4, width });
+    else setPos({ left: r.left, top: r.bottom + 4, width });
+  };
+  const openMenu = () => { place(); setQ(""); setOpen(true); };
+
   useEffect(() => {
+    if (!open) return;
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const dismiss = () => setOpen(false);
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
+    };
+  }, [open]);
 
   return (
     <div ref={ref} className={`relative ${full ? "w-full" : w}`}>
-      <button type="button" onClick={() => { setOpen((o) => !o); setQ(""); }}
+      <button ref={btnRef} type="button" onClick={() => (open ? setOpen(false) : openMenu())}
         className={`${controlBase} flex w-full items-center justify-between gap-2`}>
         <span className={`truncate ${selected ? "" : "text-mist-400"}`}>{selected ? selected.label : placeholder}</span>
         <Icon name="caret" className="h-4 w-4 shrink-0 text-mist-400" />
       </button>
-      {open && (
-        <div className="absolute left-0 z-40 mt-1 w-full min-w-[18rem] rounded-xl border border-mist-200 bg-white p-1 shadow-lg">
+      {open && pos && (
+        <div className="fixed z-50 rounded-xl border border-mist-200 bg-white p-1 shadow-lg"
+          style={{ left: pos.left, width: pos.width, ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }) }}>
           <div className="p-1">
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
               className="w-full rounded-lg border border-mist-200 px-3 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-ocean-500" />
