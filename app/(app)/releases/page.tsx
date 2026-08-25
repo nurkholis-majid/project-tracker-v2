@@ -17,27 +17,38 @@ const blank = (): Partial<Release> => ({
 
 // Natural, numeric-aware compare so "Danadira 1.11.2" ranks above "Danadira 1.9.0".
 const vcmp = (a: string, b: string) => b.localeCompare(a, undefined, { numeric: true, sensitivity: "base" });
+const vasc = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-mist-400">{label}</span>
+      <span className="font-mono text-sm font-medium text-ink-900">{value}</span>
+    </div>
+  );
+}
 
 export default function ReleasesPage() {
   const { data, loading, error, setError, save, remove, patch, reload } = useTracker();
   const [form, setForm] = useState<Partial<Release> | null>(null);
   const [picker, setPicker] = useState<Release | null>(null);
   const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState<"version" | "deploy">("version");
+  const [sort, setSort] = useState<"smart" | "version">("smart");
 
   if (loading) return <Loading />;
 
   const filtered = data.releases.filter((r) => filter === "all" || r.status === filter);
+  // Default ("smart") order: no deploy date first, then Planned by soonest target date,
+  // then Deployed by most recent date; ties broken alphabetically.
+  const bucket = (r: Release) => (!r.deploy_date ? 0 : r.status === "Deployed" ? 2 : 1);
   const rows = [...filtered].sort((a, b) => {
     if (sort === "version") return vcmp(a.fix_version, b.fix_version);
-    // Deploy date: newest first, undated releases last, same date stays adjacent (by version).
-    const da = a.deploy_date ? Date.parse(a.deploy_date) : null;
-    const db = b.deploy_date ? Date.parse(b.deploy_date) : null;
-    if (da == null && db == null) return vcmp(a.fix_version, b.fix_version);
-    if (da == null) return 1;
-    if (db == null) return -1;
-    if (db !== da) return db - da;
-    return vcmp(a.fix_version, b.fix_version);
+    const ba = bucket(a), bb = bucket(b);
+    if (ba !== bb) return ba - bb;
+    if (ba === 0) return vasc(a.fix_version, b.fix_version);          // not set → alphabetical
+    const da = Date.parse(a.deploy_date!), db = Date.parse(b.deploy_date!);
+    if (da !== db) return ba === 1 ? da - db : db - da;              // Planned soonest-first, Deployed newest-first
+    return vasc(a.fix_version, b.fix_version);                        // same date → alphabetical
   });
 
   const submit = async () => {
@@ -61,13 +72,32 @@ export default function ReleasesPage() {
         <Select
           w="w-44"
           value={sort}
-          onChange={(v) => setSort(v as "version" | "deploy")}
-          options={[{ value: "version", label: "Newest version" }, { value: "deploy", label: "Deploy date" }]}
+          onChange={(v) => setSort(v as "smart" | "version")}
+          options={[{ value: "smart", label: "Default order" }, { value: "version", label: "Newest version" }]}
         />
         <CreateBtn onClick={() => setForm(blank())}>+ Fix version</CreateBtn>
       </PageHead>
 
       <ErrorBar msg={error} />
+
+      {(() => {
+        const all = data.releases;
+        const deployedCount = all.filter((r) => r.status === "Deployed").length;
+        const plannedCount = all.filter((r) => r.status === "Planned").length;
+        const dated = all.filter((r) => r.deploy_date);
+        const t = Date.now();
+        const nearest = dated.length
+          ? dated.reduce((best, r) => Math.abs(Date.parse(r.deploy_date!) - t) < Math.abs(Date.parse(best.deploy_date!) - t) ? r : best)
+          : null;
+        return (
+          <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1.5 rounded-xl border border-mist-200 bg-white px-4 py-3">
+            <Stat label="Total" value={String(all.length)} />
+            <Stat label="Deployed" value={String(deployedCount)} />
+            <Stat label="Planned" value={String(plannedCount)} />
+            <Stat label="Nearest deploy" value={nearest ? `${nearest.fix_version} · ${fmt(nearest.deploy_date)}` : "—"} />
+          </div>
+        );
+      })()}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {rows.map((r) => {
@@ -80,7 +110,7 @@ export default function ReleasesPage() {
               <div className="flex items-start justify-between gap-3 border-b border-mist-100 px-5 py-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xl font-semibold">v{r.fix_version}</span>
+                    <span className="font-mono text-xl font-semibold">{r.fix_version}</span>
                     <StatusSelect
                       value={r.status}
                       options={DEPLOY_STATUS}
@@ -94,7 +124,7 @@ export default function ReleasesPage() {
                 </div>
                 <RowActions
                   onEdit={() => setForm(r)}
-                  onDelete={() => confirm(`Delete release v${r.fix_version}?`) && remove("releases", r.id)}
+                  onDelete={() => confirm(`Delete release ${r.fix_version}?`) && remove("releases", r.id)}
                 />
               </div>
 
