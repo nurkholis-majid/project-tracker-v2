@@ -159,6 +159,7 @@ export function Combobox({
   const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number; width: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
   const needle = q.trim().toLowerCase();
   const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
@@ -178,14 +179,16 @@ export function Combobox({
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    const dismiss = () => setOpen(false);
+    // Close when the page/modal behind scrolls — but NOT when scrolling inside the menu list itself.
+    const onScroll = (e: Event) => { if (panelRef.current && panelRef.current.contains(e.target as Node)) return; setOpen(false); };
+    const onResize = () => setOpen(false);
     document.addEventListener("mousedown", onDoc);
-    window.addEventListener("scroll", dismiss, true);
-    window.addEventListener("resize", dismiss);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("mousedown", onDoc);
-      window.removeEventListener("scroll", dismiss, true);
-      window.removeEventListener("resize", dismiss);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     };
   }, [open]);
 
@@ -197,7 +200,7 @@ export function Combobox({
         <Icon name="caret" className="h-4 w-4 shrink-0 text-mist-400" />
       </button>
       {open && pos && (
-        <div className="fixed z-50 rounded-xl border border-mist-200 bg-white p-1 shadow-lg"
+        <div ref={panelRef} className="fixed z-50 rounded-xl border border-mist-200 bg-white p-1 shadow-lg"
           style={{ left: pos.left, width: pos.width, ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }) }}>
           <div className="p-1">
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
