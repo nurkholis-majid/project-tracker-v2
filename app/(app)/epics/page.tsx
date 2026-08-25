@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
 import { epicStats, fmt, num } from "@/lib/kpi";
-import { EPIC_STATUS, STORY_PROGRESS, labelOf, type Epic, type Story, type Flag } from "@/lib/types";
+import { EPIC_STATUS, STORY_PROGRESS, type Epic, type Story, type Flag } from "@/lib/types";
 import { epicWindow } from "@/lib/kpi";
 import { CreateBtn,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
@@ -269,7 +269,6 @@ function EpicDetail({
     <Modal
       wide
       title={epic.name}
-      subtitle={`${labelOf(epic.status)} · ${fmt(epic.start_date)} – ${fmt(epic.end_date)} · ${donePoints}/${points} pt done`}
       onClose={onClose}
     >
       <div className="space-y-4">
