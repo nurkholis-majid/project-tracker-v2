@@ -2,6 +2,7 @@
 
 import { JIRA_BROWSE, META, labelOf } from "@/lib/types";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Ic, Icon, iconFor } from "./icons";
 import { useCanEdit } from "@/lib/permissions";
 
@@ -160,12 +161,14 @@ export function Combobox({
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const selected = options.find((o) => o.value === value);
   const needle = q.trim().toLowerCase();
   const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
 
-  // Position the menu with fixed coordinates so it is never clipped by a
-  // scrolling parent (e.g. inside a modal body). Flip up when short on space.
+  // Anchor the menu to the trigger using viewport coordinates; it renders in a
+  // portal on <body> so it is never clipped by a scrolling/overflow parent and
+  // is unaffected by ancestor stacking or transforms. Flip up when short on space.
   const place = () => {
     const r = btnRef.current?.getBoundingClientRect();
     if (!r) return;
@@ -174,36 +177,45 @@ export function Combobox({
     if (spaceBelow < 300 && r.top > spaceBelow) setPos({ left: r.left, bottom: window.innerHeight - r.top + 4, width });
     else setPos({ left: r.left, top: r.bottom + 4, width });
   };
-  const openMenu = () => { place(); setQ(""); setOpen(true); };
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    // Close when the page/modal behind scrolls — but NOT when scrolling inside the menu list itself.
-    const onScroll = (e: Event) => { if (panelRef.current && panelRef.current.contains(e.target as Node)) return; setOpen(false); };
-    const onResize = () => setOpen(false);
+    place();
+    inputRef.current?.focus({ preventScroll: true });
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    // Keep the menu anchored while the page/modal behind scrolls — reposition
+    // rather than close, and ignore scrolls that happen inside the menu list.
+    const reposition = (e: Event) => { if (panelRef.current?.contains(e.target as Node)) return; place(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDoc);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDoc);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("keydown", onKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (
     <div ref={ref} className={`relative ${full ? "w-full" : w}`}>
-      <button ref={btnRef} type="button" onClick={() => (open ? setOpen(false) : openMenu())}
+      <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)}
         className={`${controlBase} flex w-full items-center justify-between gap-2`}>
         <span className={`truncate ${selected ? "" : "text-mist-400"}`}>{selected ? selected.label : placeholder}</span>
         <Icon name="caret" className="h-4 w-4 shrink-0 text-mist-400" />
       </button>
-      {open && pos && (
-        <div ref={panelRef} className="fixed z-50 rounded-xl border border-mist-200 bg-white p-1 shadow-lg"
+      {open && pos && typeof document !== "undefined" && createPortal(
+        <div ref={panelRef} className="fixed z-[60] rounded-xl border border-mist-200 bg-white p-1 shadow-lg"
           style={{ left: pos.left, width: pos.width, ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }) }}>
           <div className="p-1">
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
+            <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
               className="w-full rounded-lg border border-mist-200 px-3 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-ocean-500" />
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -221,7 +233,8 @@ export function Combobox({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
