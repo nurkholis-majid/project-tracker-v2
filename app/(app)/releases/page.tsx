@@ -15,15 +15,30 @@ const blank = (): Partial<Release> => ({
   fix_version: "", deploy_date: null, folder_url: "", status: "Planned", notes: "",
 });
 
+// Natural, numeric-aware compare so "Danadira 1.11.2" ranks above "Danadira 1.9.0".
+const vcmp = (a: string, b: string) => b.localeCompare(a, undefined, { numeric: true, sensitivity: "base" });
+
 export default function ReleasesPage() {
   const { data, loading, error, setError, save, remove, patch, reload } = useTracker();
   const [form, setForm] = useState<Partial<Release> | null>(null);
   const [picker, setPicker] = useState<Release | null>(null);
   const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState<"version" | "deploy">("version");
 
   if (loading) return <Loading />;
 
-  const rows = data.releases.filter((r) => filter === "all" || r.status === filter);
+  const filtered = data.releases.filter((r) => filter === "all" || r.status === filter);
+  const rows = [...filtered].sort((a, b) => {
+    if (sort === "version") return vcmp(a.fix_version, b.fix_version);
+    // Deploy date: newest first, undated releases last, same date stays adjacent (by version).
+    const da = a.deploy_date ? Date.parse(a.deploy_date) : null;
+    const db = b.deploy_date ? Date.parse(b.deploy_date) : null;
+    if (da == null && db == null) return vcmp(a.fix_version, b.fix_version);
+    if (da == null) return 1;
+    if (db == null) return -1;
+    if (db !== da) return db - da;
+    return vcmp(a.fix_version, b.fix_version);
+  });
 
   const submit = async () => {
     if (!form?.fix_version) return;
@@ -38,10 +53,16 @@ export default function ReleasesPage() {
         title="Release"
       >
         <Select
-          w="w-48"
+          w="w-44"
           value={filter}
           onChange={setFilter}
           options={[{ value: "all", label: "All releases" }, ...optionsOf(DEPLOY_STATUS)]}
+        />
+        <Select
+          w="w-44"
+          value={sort}
+          onChange={(v) => setSort(v as "version" | "deploy")}
+          options={[{ value: "version", label: "Newest version" }, { value: "deploy", label: "Deploy date" }]}
         />
         <CreateBtn onClick={() => setForm(blank())}>+ Fix version</CreateBtn>
       </PageHead>
@@ -81,12 +102,12 @@ export default function ReleasesPage() {
                 <div>
                   <Label>Document folder (TAT, QCR, DR, etc.)</Label>
                   {r.folder_url ? (
-                    <a href={r.folder_url} target="_blank" rel="noreferrer"
-                      className="mt-1 block truncate text-xs text-ocean-600 underline underline-offset-2">
-                      <span className="inline-flex items-center gap-1"><Icon name="link" className="h-3.5 w-3.5" /> {r.folder_url}</span>
+                    <a href={r.folder_url} target="_blank" rel="noreferrer" title={r.folder_url}
+                      className="mt-1 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-mist-200 bg-mist-50 px-2.5 py-1 text-xs font-medium text-ocean-700 hover:bg-mist-100">
+                      <Icon name="link" className="h-3.5 w-3.5 shrink-0" /> Open document folder <span aria-hidden>↗</span>
                     </a>
                   ) : (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-sun-600"><Icon name="warn" className="h-3.5 w-3.5" /> SharePoint folder URL not set</p>
+                    <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-mist-200 bg-mist-50 px-2.5 py-1 text-xs text-mist-500"><Icon name="warn" className="h-3.5 w-3.5" /> Folder URL not set</span>
                   )}
                 </div>
 
@@ -94,6 +115,11 @@ export default function ReleasesPage() {
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <Label>Stories in this release</Label>
                     <div className="flex items-center gap-2">
+                      {stories.length > 0 && (
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-mist-100" title={`${deployed}/${stories.length} deployed`}>
+                          <div className="h-full rounded-full bg-ocean-500" style={{ width: `${Math.round((deployed / stories.length) * 100)}%` }} />
+                        </div>
+                      )}
                       <span className="font-mono text-[10px] text-mist-400">{deployed}/{stories.length} deployed</span>
                       <button
                         onClick={() => setPicker(r)}
@@ -109,7 +135,8 @@ export default function ReleasesPage() {
                       <div key={s.id} className="flex items-center gap-2 border-b border-mist-100 px-3 py-2 last:border-0">
                         <span className="min-w-0 flex-1 truncate text-xs text-ink-700">{s.title}</span>
                         <JiraLink k={s.jira_key} />
-                        <Badge v={s.release_status} />
+                        <span title={s.release_status === "Deployed" ? "Deployed" : s.release_status === "Merging to UAT" ? "Merging to UAT" : "Not released"}
+                          className={`h-2 w-2 shrink-0 rounded-full ${s.release_status === "Deployed" ? "bg-ocean-500" : s.release_status === "Merging to UAT" ? "bg-sun-500" : "bg-mist-300"}`} />
                       </div>
                     ))}
                     {stories.length === 0 && (
