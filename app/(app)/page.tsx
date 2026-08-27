@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useTracker } from "@/lib/useTracker";
+import { catColor } from "@/lib/category";
 import { computeKpi, currentSemester, epicPct, epicStats, epicWindow, fmt, isEpicDone, num } from "@/lib/kpi";
 import type { Story } from "@/lib/types";
 import {
@@ -149,6 +150,19 @@ export default function OverviewPage() {
     3: { pill: "bg-mist-100 text-mist-600 ring-mist-200", edge: "border-l-mist-200" },
   };
 
+  const epicCats = (() => {
+    const m = new Map<string, number>();
+    data.epics.forEach((e) => { const c = (e.category ?? "").trim(); if (c) m.set(c, (m.get(c) ?? 0) + 1); });
+    const arr = [...m.entries()].sort((a, b) => b[1] - a[1]);
+    return { arr, total: arr.reduce((s, [, n]) => s + n, 0) };
+  })();
+  const donutBg = (() => {
+    let acc = 0;
+    return epicCats.arr
+      .map(([c, n]) => { const f = (n / epicCats.total) * 100; const seg = `${catColor(c).dot} ${acc}% ${acc + f}%`; acc += f; return seg; })
+      .join(", ");
+  })();
+
   return (
     <div>
       <PageHead
@@ -235,6 +249,34 @@ export default function OverviewPage() {
           )}
         </section>
       </div>
+
+      {epicCats.total > 0 && (
+        <section className="mt-5 rounded-2xl border border-mist-200 bg-white p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <Label>Epics by category</Label>
+            <span className="font-mono text-[11px] text-mist-600">{epicCats.total} epics · {epicCats.arr.length} categories</span>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-8">
+            <div className="relative h-44 w-44 shrink-0 rounded-full" style={{ background: `conic-gradient(${donutBg})` }}>
+              <div className="absolute inset-8 grid place-items-center rounded-full bg-white text-center">
+                <div>
+                  <div className="font-mono text-2xl font-semibold text-ink-900">{epicCats.total}</div>
+                  <div className="text-[10px] uppercase tracking-wide text-mist-400">epics</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex min-w-[240px] flex-1 flex-col gap-2">
+              {epicCats.arr.map(([c, n]) => (
+                <div key={c} className="flex items-center gap-2 text-[13px]">
+                  <span className="h-3 w-3 rounded-sm" style={{ background: catColor(c).dot }} />
+                  <span className="text-ink-700">{c}</span>
+                  <span className="ml-auto font-mono text-mist-500"><b className="text-ink-800">{n}</b> · {((n / epicCats.total) * 100).toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-5">

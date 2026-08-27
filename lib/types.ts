@@ -43,6 +43,7 @@ export type Epic = {
   id: string;
   name: string;
   jira_key: string | null;
+  category: string | null;
   status: EpicStatus;
   start_date: string | null;
   end_date: string | null;

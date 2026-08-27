@@ -9,6 +9,7 @@ import {
   BAR_TONE, Badge, Btn, ErrorBar, Label, Loading, Metric, Progress, Segmented, Stepper,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { catColor } from "@/lib/category";
 
 export default function RecapPage() {
   const { data, loading, error } = useTracker();
@@ -45,6 +46,12 @@ export default function RecapPage() {
   if (loading) return <Loading />;
 
   const ongoing = kpi.epicsRunning.filter((e) => !kpi.epicsDone.includes(e));
+  const recapCats = (() => {
+    const m = new Map<string, number>();
+    kpi.epicsRunning.forEach((e) => { const c = (e.category ?? "").trim(); if (c) m.set(c, (m.get(c) ?? 0) + 1); });
+    const arr = [...m.entries()].sort((a, b) => b[1] - a[1]);
+    return { arr, total: arr.reduce((s, [, n]) => s + n, 0) };
+  })();
   const versionsOf = (epicId: string) =>
     Array.from(new Set(
       data.stories
@@ -154,6 +161,37 @@ export default function RecapPage() {
           </div>
         </div>
       </section>
+
+      {recapCats.total > 0 && (
+        <section className="mb-5 rounded-2xl border border-mist-200 bg-white shadow-card">
+          <div className="flex items-center justify-between border-b border-mist-100 px-5 py-4">
+            <h2 className="text-base font-semibold">Epics by category</h2>
+            <span className="font-mono text-[11px] text-mist-600">{recapCats.total} epics · {recapCats.arr.length} categories</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
+            {recapCats.arr.map(([c, n]) => {
+              const col = catColor(c);
+              const pct = ((n / recapCats.total) * 100).toFixed(1);
+              return (
+                <div key={c} className="relative overflow-hidden rounded-xl border border-mist-200 p-3.5">
+                  <span className="absolute inset-y-0 left-0 w-1" style={{ background: col.dot }} />
+                  <div className="flex items-center gap-2 text-[12.5px] font-semibold text-ink-800">
+                    <span className="h-2 w-2 rounded-full" style={{ background: col.dot }} />
+                    <span className="truncate" title={c}>{c}</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="font-mono text-2xl font-semibold text-ink-900">{n}</span>
+                    <span className="text-[12.5px] font-semibold text-mist-500">{pct}%</span>
+                  </div>
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-mist-100">
+                    <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: col.dot }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ---------------- Rekap siap kirim ---------------- */}
       <section className="rounded-2xl border border-mist-200 bg-white shadow-card">

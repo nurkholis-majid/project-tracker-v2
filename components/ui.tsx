@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Ic, Icon, iconFor } from "./icons";
 import { useCanEdit } from "@/lib/permissions";
+import { catColor } from "@/lib/category";
 
 /* ---------------------------------------------------------------- badge */
 export function Badge({ v }: { v?: string | null }) {
@@ -145,7 +146,7 @@ export const optionsOf = (values: readonly string[]) =>
 
 /** Pilihan pendek (2–4 opsi) — satu klik, tanpa buka dropdown. */
 export function Combobox({
-  value, onChange, options, placeholder = "Search…", empty = "No matches", w = "w-52", full,
+  value, onChange, options, placeholder = "Search…", empty = "No matches", w = "w-52", full, creatable,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -154,6 +155,7 @@ export function Combobox({
   empty?: string;
   w?: string;
   full?: boolean;
+  creatable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -163,8 +165,10 @@ export function Combobox({
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = options.find((o) => o.value === value);
+  const displayLabel = selected ? selected.label : value || placeholder;
   const needle = q.trim().toLowerCase();
   const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+  const canCreate = !!creatable && !!q.trim() && !options.some((o) => o.label.toLowerCase() === needle);
 
   // Anchor the menu to the trigger using viewport coordinates; it renders in a
   // portal on <body> so it is never clipped by a scrolling/overflow parent and
@@ -208,7 +212,7 @@ export function Combobox({
     <div ref={ref} className={`relative ${full ? "w-full" : w}`}>
       <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)}
         className={`${controlBase} flex w-full items-center justify-between gap-2`}>
-        <span className={`truncate ${selected ? "" : "text-mist-400"}`}>{selected ? selected.label : placeholder}</span>
+        <span className={`truncate ${selected || value ? "" : "text-mist-400"}`}>{displayLabel}</span>
         <Icon name="caret" className="h-4 w-4 shrink-0 text-mist-400" />
       </button>
       {open && pos && typeof document !== "undefined" && createPortal(
@@ -232,6 +236,13 @@ export function Combobox({
                 </button>
               );
             })}
+            {canCreate && (
+              <button type="button"
+                onClick={() => { onChange(q.trim()); setOpen(false); }}
+                className="mt-1 flex w-full items-center gap-2 border-t border-mist-100 px-3 py-2 text-left text-sm font-semibold text-ocean-700 hover:bg-mist-50">
+                <span className="text-base leading-none">＋</span> Create “{q.trim()}”
+              </button>
+            )}
           </div>
         </div>,
         document.body
@@ -308,6 +319,19 @@ export function Modal({
         <div className="overflow-y-auto p-5">{children}</div>
       </div>
     </div>
+  );
+}
+
+/** Colored pill for a free-text category (color derived from the name). */
+export function CatBadge({ name }: { name?: string | null }) {
+  if (!name) return <span className="text-xs text-mist-400">—</span>;
+  const c = catColor(name);
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.dot }} />
+      {name}
+    </span>
   );
 }
 

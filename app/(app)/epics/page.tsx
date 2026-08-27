@@ -5,7 +5,8 @@ import { useTracker } from "@/lib/useTracker";
 import { epicStats, fmt, num } from "@/lib/kpi";
 import { EPIC_STATUS, STORY_PROGRESS, type Epic, type Story, type Flag } from "@/lib/types";
 import { epicWindow } from "@/lib/kpi";
-import { CreateBtn,
+import { catList } from "@/lib/category";
+import { CreateBtn, CatBadge, Combobox,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
 } from "@/components/ui";
@@ -21,13 +22,14 @@ const SORTS: { value: SortKey; label: string }[] = [
 ];
 
 const blank = (): Partial<Epic> => ({
-  name: "", jira_key: "", status: "Requirement",
+  name: "", jira_key: "", category: null, status: "Requirement",
   start_date: null, end_date: null, est_deploy: null, notes: "",
 });
 
 export default function EpicsPage() {
   const { data, loading, error, save, remove, patch } = useTracker();
   const [status, setStatus] = useState("all");
+  const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("baru");
   const [form, setForm] = useState<Partial<Epic> | null>(null);
@@ -39,6 +41,7 @@ export default function EpicsPage() {
     const list = data.epics.filter(
       (e) =>
         (status === "all" || e.status === status) &&
+        (cat === "all" || (e.category ?? "") === cat) &&
         (!q || `${e.name} ${e.jira_key ?? ""}`.toLowerCase().includes(q.toLowerCase()))
     );
     const sorted = [...list];
@@ -48,7 +51,7 @@ export default function EpicsPage() {
     if (sort === "deadline")
       sorted.sort((a, b) => (a.end_date || "9999").localeCompare(b.end_date || "9999"));
     return sorted;
-  }, [data.epics, status, sort, stats, q]);
+  }, [data.epics, status, cat, sort, stats, q]);
 
   if (loading) return <Loading />;
 
@@ -79,6 +82,12 @@ export default function EpicsPage() {
           options={[{ value: "all", label: "All statuses" }, ...optionsOf(EPIC_STATUS)]}
         />
         <Select
+          w="w-44"
+          value={cat}
+          onChange={setCat}
+          options={[{ value: "all", label: "All categories" }, ...catList(data.epics).map((c) => ({ value: c, label: c }))]}
+        />
+        <Select
           w="w-52"
           value={sort}
           onChange={(v) => setSort(v as SortKey)}
@@ -94,7 +103,7 @@ export default function EpicsPage() {
           <thead>
             <tr>
               <Th>Epic</Th>
-              <Th className="w-28">Jira</Th>
+              <Th className="w-40">Category</Th>
               <Th className="w-40">Progress</Th>
               <Th className="w-40">Status</Th>
               <Th className="w-28">Start</Th>
@@ -121,7 +130,7 @@ export default function EpicsPage() {
                       {st.done}/{st.total} stories · {st.donePoints}/{st.points} pt · click to see its stories
                     </div>
                   </Td>
-                  <Td><JiraLink k={e.jira_key} /></Td>
+                  <Td><CatBadge name={e.category} /></Td>
                   <Td>
                     <Progress pct={pct} />
                     <div className="mt-1 font-mono text-[10px] text-mist-400">{pct}%</div>
@@ -206,6 +215,15 @@ export default function EpicsPage() {
                 />
               </Field>
             </div>
+
+            <Field label="Category" hint="Pick an existing category or type a new one to create it.">
+              <Combobox full creatable
+                value={form.category ?? ""}
+                onChange={(v) => setForm({ ...form, category: v || null })}
+                placeholder="Search or add a category…"
+                options={[{ value: "", label: "— no category —" }, ...catList(data.epics).map((c) => ({ value: c, label: c }))]}
+              />
+            </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="Start date">
