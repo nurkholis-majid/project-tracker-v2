@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Ic, Icon, iconFor } from "./icons";
 import { useCanEdit } from "@/lib/permissions";
-import { catColor } from "@/lib/category";
+import { catColor, type CatColor } from "@/lib/category";
 
 /* ---------------------------------------------------------------- badge */
 export function Badge({ v }: { v?: string | null }) {
@@ -323,9 +323,9 @@ export function Modal({
 }
 
 /** Colored pill for a free-text category (color derived from the name). */
-export function CatBadge({ name }: { name?: string | null }) {
+export function CatBadge({ name, color }: { name?: string | null; color?: CatColor }) {
   if (!name) return <span className="text-xs text-mist-400">—</span>;
-  const c = catColor(name);
+  const c = color ?? catColor(name);
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>

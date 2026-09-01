@@ -9,7 +9,7 @@ import {
   BAR_TONE, Badge, Btn, ErrorBar, Label, Loading, Metric, Progress, Segmented, Stepper,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { catColor } from "@/lib/category";
+import { catColor, catColorMap, catList } from "@/lib/category";
 
 export default function RecapPage() {
   const { data, loading, error } = useTracker();
@@ -46,6 +46,7 @@ export default function RecapPage() {
   if (loading) return <Loading />;
 
   const ongoing = kpi.epicsRunning.filter((e) => !kpi.epicsDone.includes(e));
+  const catMap = catColorMap(catList(data.epics));
   const recapCats = (() => {
     const m = new Map<string, number>();
     kpi.epicsRunning.forEach((e) => { const c = (e.category ?? "").trim(); if (c) m.set(c, (m.get(c) ?? 0) + 1); });
@@ -170,7 +171,7 @@ export default function RecapPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
             {recapCats.arr.map(([c, n]) => {
-              const col = catColor(c);
+              const col = catMap.get(c) ?? catColor(c);
               const pct = ((n / recapCats.total) * 100).toFixed(1);
               return (
                 <div key={c} className="relative overflow-hidden rounded-xl border border-mist-200 p-3.5">

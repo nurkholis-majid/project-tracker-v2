@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useTracker } from "@/lib/useTracker";
-import { catColor } from "@/lib/category";
+import { catColor, catColorMap, catList } from "@/lib/category";
 import { computeKpi, currentSemester, epicPct, epicStats, epicWindow, fmt, isEpicDone, num } from "@/lib/kpi";
 import type { Story } from "@/lib/types";
 import {
@@ -156,10 +156,12 @@ export default function OverviewPage() {
     const arr = [...m.entries()].sort((a, b) => b[1] - a[1]);
     return { arr, total: arr.reduce((s, [, n]) => s + n, 0) };
   })();
+  const catMap = catColorMap(catList(data.epics));
+  const colOf = (c: string) => (catMap.get(c) ?? catColor(c)).dot;
   const donutBg = (() => {
     let acc = 0;
     return epicCats.arr
-      .map(([c, n]) => { const f = (n / epicCats.total) * 100; const seg = `${catColor(c).dot} ${acc}% ${acc + f}%`; acc += f; return seg; })
+      .map(([c, n]) => { const f = (n / epicCats.total) * 100; const seg = `${colOf(c)} ${acc}% ${acc + f}%`; acc += f; return seg; })
       .join(", ");
   })();
 
@@ -270,10 +272,10 @@ export default function OverviewPage() {
                 const share = (n / epicCats.total) * 100;
                 return (
                   <div key={c} className="flex items-center gap-3 text-[13px]">
-                    <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: catColor(c).dot }} />
+                    <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: colOf(c) }} />
                     <span className="w-40 shrink-0 truncate text-ink-700" title={c}>{c}</span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-mist-100">
-                      <span className="block h-full rounded-full" style={{ width: `${share}%`, background: catColor(c).dot }} />
+                      <span className="block h-full rounded-full" style={{ width: `${share}%`, background: colOf(c) }} />
                     </div>
                     <span className="w-24 shrink-0 text-right font-mono text-mist-500"><b className="text-ink-800">{n}</b> · {share.toFixed(1)}%</span>
                   </div>

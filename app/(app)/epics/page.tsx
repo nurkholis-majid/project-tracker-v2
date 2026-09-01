@@ -5,7 +5,7 @@ import { useTracker } from "@/lib/useTracker";
 import { epicStats, fmt, num } from "@/lib/kpi";
 import { EPIC_STATUS, STORY_PROGRESS, type Epic, type Story, type Flag } from "@/lib/types";
 import { epicWindow } from "@/lib/kpi";
-import { catList } from "@/lib/category";
+import { catList, catColorMap } from "@/lib/category";
 import { CreateBtn, CatBadge, Combobox,
   Badge, Btn, Card, EmptyRow, ErrorBar, Field, FormActions, JiraLink, Loading, Modal,
   PageHead, Progress, ROW, RowActions, Select, StatusSelect, Td, Th, filterCls, inputCls, optionsOf,
@@ -40,6 +40,7 @@ export default function EpicsPage() {
   const [detail, setDetail] = useState<Epic | null>(null);
 
   const stats = useMemo(() => epicStats(data), [data]);
+  const catMap = useMemo(() => catColorMap(catList(data.epics)), [data.epics]);
 
   const rows = useMemo(() => {
     const list = data.epics.filter(
@@ -139,7 +140,7 @@ export default function EpicsPage() {
                       {st.done}/{st.total} stories · {st.donePoints}/{st.points} pt · click to see its stories
                     </div>
                   </Td>
-                  <Td><CatBadge name={e.category} /></Td>
+                  <Td><CatBadge name={e.category} color={e.category ? catMap.get(e.category) : undefined} /></Td>
                   <Td>
                     <Progress pct={pct} />
                     <div className="mt-1 font-mono text-[10px] text-mist-400">{pct}%</div>
