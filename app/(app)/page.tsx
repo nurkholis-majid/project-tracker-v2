@@ -265,14 +265,20 @@ export default function OverviewPage() {
                 </div>
               </div>
             </div>
-            <div className="flex min-w-[240px] flex-1 flex-col gap-2">
-              {epicCats.arr.map(([c, n]) => (
-                <div key={c} className="flex items-center gap-2 text-[13px]">
-                  <span className="h-3 w-3 rounded-sm" style={{ background: catColor(c).dot }} />
-                  <span className="text-ink-700">{c}</span>
-                  <span className="ml-auto font-mono text-mist-500"><b className="text-ink-800">{n}</b> · {((n / epicCats.total) * 100).toFixed(1)}%</span>
-                </div>
-              ))}
+            <div className="flex min-w-[280px] flex-1 flex-col gap-2.5">
+              {epicCats.arr.map(([c, n]) => {
+                const share = (n / epicCats.total) * 100;
+                return (
+                  <div key={c} className="flex items-center gap-3 text-[13px]">
+                    <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: catColor(c).dot }} />
+                    <span className="w-40 shrink-0 truncate text-ink-700" title={c}>{c}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-mist-100">
+                      <span className="block h-full rounded-full" style={{ width: `${share}%`, background: catColor(c).dot }} />
+                    </div>
+                    <span className="w-24 shrink-0 text-right font-mono text-mist-500"><b className="text-ink-800">{n}</b> · {share.toFixed(1)}%</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>

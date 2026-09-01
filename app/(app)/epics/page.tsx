@@ -12,19 +12,23 @@ import { CreateBtn, CatBadge, Combobox,
 } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 
-type SortKey = "baru" | "nama" | "point" | "deadline";
+type SortKey = "baru" | "nama" | "point" | "deadline" | "start";
 
 const SORTS: { value: SortKey; label: string }[] = [
   { value: "baru",     label: "Newest" },
   { value: "deadline", label: "Nearest end date" },
   { value: "point",    label: "Most story points" },
   { value: "nama",     label: "Name A–Z" },
+  { value: "start",    label: "Start date, then Jira" },
 ];
 
 const blank = (): Partial<Epic> => ({
   name: "", jira_key: "", category: null, status: "Requirement",
   start_date: null, end_date: null, est_deploy: null, notes: "",
 });
+
+// Numeric part of a Jira key (DLB-25997 -> 25997); missing keys sort last.
+const jiraNo = (k: string | null) => { const m = (k ?? "").match(/(\d+)/); return m ? parseInt(m[1], 10) : Infinity; };
 
 export default function EpicsPage() {
   const { data, loading, error, save, remove, patch } = useTracker();
@@ -50,6 +54,11 @@ export default function EpicsPage() {
     if (sort === "point") sorted.sort((a, b) => num(stats[b.id]?.points) - num(stats[a.id]?.points));
     if (sort === "deadline")
       sorted.sort((a, b) => (a.end_date || "9999").localeCompare(b.end_date || "9999"));
+    if (sort === "start")
+      sorted.sort((a, b) =>
+        (a.start_date || "9999").localeCompare(b.start_date || "9999") ||
+        jiraNo(a.jira_key) - jiraNo(b.jira_key)
+      );
     return sorted;
   }, [data.epics, status, cat, sort, stats, q]);
 
