@@ -187,7 +187,6 @@ export default function RequirementsPage() {
     <div>
       <PageHead
         title="Requirements"
-        sub="Capture, review, and track product and business requirements from stakeholders — on a board you can shape to fit your intake process."
       >
         <div className="relative">
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mist-400"><Icon name="search" className="h-4 w-4" /></span>
