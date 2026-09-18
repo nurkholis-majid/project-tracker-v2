@@ -31,6 +31,9 @@ const LINK_TAG: Record<string, string> = {
   Epic: "bg-[#E6F6F4] text-[#107569]",
   Link: "bg-[#F2F4F7] text-[#667085]",
 };
+// Short display label derived from a URL (hostname) when no label is given.
+const prettyUrl = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+
 // Resolve a link's tag: explicit type, else inferred (Jira key/browse => Epic).
 function linkType(l: { label?: string; url?: string; type?: string }): string {
   if (l.type) return l.type;
@@ -401,9 +404,12 @@ function Drawer({
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const addAc = () => { if (acNew.trim()) { set({ criteria: [...draft.criteria, { text: acNew.trim(), done: false }] }); setAcNew(""); } };
   const addLink = () => {
-    const label = lkLabel.trim();
-    if (!label) return;
-    const url = lkUrl.trim() || (JIRA_KEY_RE.test(label) ? JIRA_BROWSE + label.toUpperCase() : "");
+    const rawLabel = lkLabel.trim();
+    const rawUrl = lkUrl.trim();
+    // A bare Jira key typed in either field still builds a Jira URL (convenience).
+    const url = rawUrl || (JIRA_KEY_RE.test(rawLabel) ? JIRA_BROWSE + rawLabel.toUpperCase() : "");
+    if (!url && !rawLabel) return;             // need at least a link or a label
+    const label = rawLabel || prettyUrl(url);  // label optional → derive from the URL
     set({ links: [...draft.links, { label, url, type: lkType }] });
     setLkLabel(""); setLkUrl("");
   };
@@ -512,9 +518,9 @@ function Drawer({
                   <option value="Link">Link</option>
                 </select>
               </div>
-              <input className={inputCls + " w-28 shrink-0"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (DLB-…)" />
+              <input className={inputCls + " w-28 shrink-0"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (optional)" />
               <input className={inputCls + " flex-1"} value={lkUrl} onChange={(e) => setLkUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addLink()} placeholder="https://…" />
+                onKeyDown={(e) => e.key === "Enter" && addLink()} placeholder="Paste any link — https://… (or DLB-…)" />
               <Btn onClick={addLink}>Add</Btn>
             </div>
           </Fld>
