@@ -500,28 +500,32 @@ function Drawer({
               {draft.links.map((l, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 text-[12px]">
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${LINK_TAG[linkType(l)] ?? LINK_TAG.Link}`}>{linkType(l)}</span>
-                  <Icon name="link" className="h-3.5 w-3.5 text-mist-400" />
+                  <Icon name="link" className="h-3.5 w-3.5 shrink-0 text-mist-400" />
                   {(() => { const href = linkHref(l); return href
-                    ? <a href={href} target="_blank" rel="noreferrer" className="text-ocean-600 hover:underline">{l.label}</a>
-                    : <span className="text-mist-500">{l.label}</span>; })()}
+                    ? <a href={href} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-ocean-600 hover:underline">{l.label}</a>
+                    : <span className="min-w-0 flex-1 truncate text-mist-500">{l.label}</span>; })()}
                   <button onClick={() => set({ links: draft.links.filter((_, j) => j !== i) })}
-                    className="ml-auto text-mist-400 hover:text-alert-600"><Icon name="close" className="h-4 w-4" /></button>
+                    className="shrink-0 text-mist-400 hover:text-alert-600"><Icon name="close" className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
-            <div className="mt-2 flex gap-2">
-              <div className="w-24 shrink-0">
-                <select className={inputCls} value={lkType} onChange={(e) => setLkType(e.target.value as "PRD" | "BRD" | "Epic" | "Link")}>
-                  <option value="PRD">PRD</option>
-                  <option value="BRD">BRD</option>
-                  <option value="Epic">Epic</option>
-                  <option value="Link">Link</option>
-                </select>
+            <div className="mt-2 space-y-2">
+              <div className="flex gap-2">
+                <div className="w-24 shrink-0">
+                  <select className={inputCls} value={lkType} onChange={(e) => setLkType(e.target.value as "PRD" | "BRD" | "Epic" | "Link")}>
+                    <option value="PRD">PRD</option>
+                    <option value="BRD">BRD</option>
+                    <option value="Epic">Epic</option>
+                    <option value="Link">Link</option>
+                  </select>
+                </div>
+                <input className={inputCls + " min-w-0 flex-1"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (optional)" />
               </div>
-              <input className={inputCls + " w-28 shrink-0"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (optional)" />
-              <input className={inputCls + " flex-1"} value={lkUrl} onChange={(e) => setLkUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addLink()} placeholder="Paste any link — https://… (or DLB-…)" />
-              <Btn onClick={addLink}>Add</Btn>
+              <div className="flex gap-2">
+                <input className={inputCls + " min-w-0 flex-1"} value={lkUrl} onChange={(e) => setLkUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLink()} placeholder="Paste any link — https://… (or DLB-…)" />
+                <Btn onClick={addLink} className="shrink-0">Add</Btn>
+              </div>
             </div>
           </Fld>
       </div>
