@@ -25,6 +25,20 @@ function linkHref(l: { label?: string; url?: string }): string {
   return "";
 }
 
+const LINK_TAG: Record<string, string> = {
+  PRD: "bg-[#EFF4FF] text-[#175CD3]",
+  BRD: "bg-[#FEF0C7] text-[#B54708]",
+  Epic: "bg-[#E6F6F4] text-[#107569]",
+  Link: "bg-[#F2F4F7] text-[#667085]",
+};
+// Resolve a link's tag: explicit type, else inferred (Jira key/browse => Epic).
+function linkType(l: { label?: string; url?: string; type?: string }): string {
+  if (l.type) return l.type;
+  const label = (l.label ?? "").trim();
+  if (JIRA_KEY_RE.test(label) || /\/browse\//i.test(l.url ?? "")) return "Epic";
+  return "Link";
+}
+
 
 const STAGE_PALETTE = ["#98A2B3", "#6172F3", "#0E9384", "#F79009", "#DC6803", "#1A6AFF", "#2FC0AF", "#12B76A", "#F04438"];
 
@@ -382,6 +396,7 @@ function Drawer({
   const [acNew, setAcNew] = useState("");
   const [lkLabel, setLkLabel] = useState("");
   const [lkUrl, setLkUrl] = useState("");
+  const [lkType, setLkType] = useState<"PRD" | "BRD" | "Epic" | "Link">("PRD");
 
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const addAc = () => { if (acNew.trim()) { set({ criteria: [...draft.criteria, { text: acNew.trim(), done: false }] }); setAcNew(""); } };
@@ -389,7 +404,7 @@ function Drawer({
     const label = lkLabel.trim();
     if (!label) return;
     const url = lkUrl.trim() || (JIRA_KEY_RE.test(label) ? JIRA_BROWSE + label.toUpperCase() : "");
-    set({ links: [...draft.links, { label, url }] });
+    set({ links: [...draft.links, { label, url, type: lkType }] });
     setLkLabel(""); setLkUrl("");
   };
 
@@ -478,6 +493,7 @@ function Drawer({
             <div className="space-y-1">
               {draft.links.map((l, i) => (
                 <div key={i} className="flex items-center gap-2 py-1 text-[12px]">
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${LINK_TAG[linkType(l)] ?? LINK_TAG.Link}`}>{linkType(l)}</span>
                   <Icon name="link" className="h-3.5 w-3.5 text-mist-400" />
                   {(() => { const href = linkHref(l); return href
                     ? <a href={href} target="_blank" rel="noreferrer" className="text-ocean-600 hover:underline">{l.label}</a>
@@ -488,7 +504,15 @@ function Drawer({
               ))}
             </div>
             <div className="mt-2 flex gap-2">
-              <input className={inputCls + " w-32"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (DLB-…)" />
+              <div className="w-24 shrink-0">
+                <select className={inputCls} value={lkType} onChange={(e) => setLkType(e.target.value as "PRD" | "BRD" | "Epic" | "Link")}>
+                  <option value="PRD">PRD</option>
+                  <option value="BRD">BRD</option>
+                  <option value="Epic">Epic</option>
+                  <option value="Link">Link</option>
+                </select>
+              </div>
+              <input className={inputCls + " w-28 shrink-0"} value={lkLabel} onChange={(e) => setLkLabel(e.target.value)} placeholder="Label (DLB-…)" />
               <input className={inputCls + " flex-1"} value={lkUrl} onChange={(e) => setLkUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addLink()} placeholder="https://…" />
               <Btn onClick={addLink}>Add</Btn>
@@ -499,7 +523,6 @@ function Drawer({
       <div className="mt-2 flex items-center justify-between gap-3 border-t border-mist-100 pt-4">
         {draft.id ? <Btn tone="danger" onClick={onDelete}>Delete</Btn> : <span />}
         <div className="flex items-center gap-2.5">
-          <span className="flex items-center gap-1.5 text-xs text-mist-400" title="Can be linked to the Epic page later"><Icon name="promote" className="h-4 w-4" /> Promote to Epic</span>
           <Btn tone="accent" onClick={onSave}>Save</Btn>
         </div>
       </div>

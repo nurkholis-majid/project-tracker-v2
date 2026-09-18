@@ -184,7 +184,8 @@ export const REQ_CATEGORY_META: Record<ReqCategory, { label: string }> = {
 };
 
 export type ReqCriterion = { text: string; done: boolean };
-export type ReqLink = { label: string; url: string };
+export type ReqLinkType = "PRD" | "BRD" | "Epic" | "Link";
+export type ReqLink = { label: string; url: string; type?: ReqLinkType };
 
 export type ReqStage = {
   id: string;
