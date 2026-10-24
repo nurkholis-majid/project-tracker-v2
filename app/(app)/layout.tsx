@@ -31,6 +31,7 @@ const NAV_GROUPS: { section: string; items: { href: string; icon: IconName; labe
       { href: "/deploy",   icon: "deploy",  label: "Need to Deploy", menu: "deploy" },
       { href: "/releases", icon: "release", label: "Release",        menu: "releases" },
       { href: "/flags",    icon: "flag",    label: "Feature Flag",   menu: "flags" },
+      { href: "/technical-impact", icon: "puzzle", label: "Technical Impact", menu: "impact" },
     ],
   },
   {

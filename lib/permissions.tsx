@@ -7,19 +7,19 @@ import { supabase } from "./supabase";
 export type Level = "none" | "view" | "edit";
 export type MenuKey =
   | "overview" | "recap" | "requirements" | "carding" | "epics" | "stories"
-  | "deploy" | "releases" | "flags" | "systems" | "sync" | "access";
+  | "deploy" | "releases" | "flags" | "systems" | "impact" | "sync" | "access";
 
 export const MENU_LABELS: Record<MenuKey, string> = {
   overview: "Overview", recap: "Recap Semester", requirements: "Requirements",
   carding: "Carding", epics: "Epic", stories: "Story", deploy: "Need to Deploy",
-  releases: "Release", flags: "Feature Flag", systems: "Systems", sync: "Jira Sync",
+  releases: "Release", flags: "Feature Flag", systems: "Systems", impact: "Technical Impact", sync: "Jira Sync",
   access: "Access",
 };
 
 /** Menus shown in the permission matrix, in display order. */
 export const MENU_ORDER: MenuKey[] = [
   "overview", "recap", "requirements", "carding", "epics", "stories",
-  "deploy", "releases", "flags", "systems", "sync", "access",
+  "deploy", "releases", "flags", "systems", "impact", "sync", "access",
 ];
 
 /** Resolve the current route to a menu key (longest prefix first). */
@@ -28,7 +28,7 @@ export function menuForPath(path: string): MenuKey {
     ["/recap", "recap"], ["/requirements", "requirements"], ["/carding", "carding"],
     ["/epics", "epics"], ["/stories", "stories"], ["/deploy", "deploy"],
     ["/releases", "releases"], ["/flags", "flags"], ["/systems", "systems"],
-    ["/sync", "sync"], ["/access", "access"],
+    ["/technical-impact", "impact"], ["/sync", "sync"], ["/access", "access"],
   ];
   for (const [prefix, menu] of map) if (path === prefix || path.startsWith(prefix + "/")) return menu;
   return "overview"; // "/"
