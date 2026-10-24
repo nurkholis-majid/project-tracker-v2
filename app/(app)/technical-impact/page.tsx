@@ -12,7 +12,7 @@ import {
 import { Icon } from "@/components/icons";
 import { useCanEdit } from "@/lib/permissions";
 
-type SvcDraft = { id?: string; name: string; build_tag: string; is_new: boolean };
+type SvcDraft = { id?: string; name: string; is_new: boolean };
 type VaultDraft = { id?: string; vault_key: string; vault_value: string };
 
 export default function TechnicalImpactPage() {
@@ -60,7 +60,7 @@ export default function TechnicalImpactPage() {
       if (!needle) return true;
       const hay = [
         e.name, e.jira_key ?? "",
-        ...svcOf(e.id).map((s) => `${s.name} ${s.build_tag ?? ""}`),
+        ...svcOf(e.id).map((s) => s.name),
         ...flagsOf(e.id).map((f) => f.name),
         ...vaultOf(e.id).map((v) => v.vault_key),
       ].join(" ").toLowerCase();
@@ -86,11 +86,10 @@ export default function TechnicalImpactPage() {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th className="w-[26%]">Epic</Th>
-              <Th className="w-[20%]">Microservices</Th>
-              <Th className="w-[16%]">Build tag</Th>
-              <Th className="w-[20%]">Feature flag</Th>
-              <Th className="w-[18%]">Vault</Th>
+              <Th className="w-[28%]">Epic</Th>
+              <Th className="w-[24%]">Microservices</Th>
+              <Th className="w-[24%]">Feature flag</Th>
+              <Th className="w-[24%]">Vault</Th>
               <Th className="w-16" />
             </tr>
           </thead>
@@ -116,19 +115,6 @@ export default function TechnicalImpactPage() {
                             {s.name}
                             {s.is_new && <span className="rounded bg-sun-100 px-1 py-0.5 text-[9px] font-bold text-sun-700">NEW</span>}
                             {s.source === "jira" && <span className="rounded bg-ocean-50 px-1 py-0.5 text-[9px] font-bold text-ocean-600" title="Dari Jira sync">JIRA</span>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : <span className="text-xs text-mist-400">—</span>}
-                  </Td>
-                  <Td>
-                    {svc.length ? (
-                      <div className="flex flex-col gap-1.5">
-                        {svc.map((s) => (
-                          <div key={s.id} className="text-xs">
-                            {s.build_tag
-                              ? <span className="rounded bg-mist-100 px-1.5 py-0.5 font-mono text-ink-700">{s.build_tag}</span>
-                              : <span className="font-mono text-mist-400">not set</span>}
                           </div>
                         ))}
                       </div>
@@ -169,7 +155,7 @@ export default function TechnicalImpactPage() {
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-14 text-center text-sm text-mist-500">No epics match this filter.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-14 text-center text-sm text-mist-500">No epics match this filter.</td></tr>
             )}
           </tbody>
         </table>
@@ -197,7 +183,7 @@ export default function TechnicalImpactPage() {
             await sb.from("epic_services").delete().eq("epic_id", eid).eq("source", "manual");
             await sb.from("epic_vault").delete().eq("epic_id", eid).eq("source", "manual");
             const svcRows = svc.filter((s) => s.name.trim()).map((s, i) => ({
-              epic_id: eid, name: s.name.trim(), build_tag: s.build_tag.trim() || null, is_new: s.is_new, source: "manual", sort_order: i,
+              epic_id: eid, name: s.name.trim(), is_new: s.is_new, source: "manual", sort_order: i,
             }));
             const vltRows = vlt.filter((v) => v.vault_key.trim()).map((v, i) => ({
               epic_id: eid, vault_key: v.vault_key.trim(), vault_value: v.vault_value.trim() || null, source: "manual", sort_order: i,
@@ -232,7 +218,7 @@ function ImpactModal({
   const jiraVlt = vault.filter((v) => v.source === "jira");
 
   const [svc, setSvc] = useState<SvcDraft[]>(
-    services.filter((s) => s.source !== "jira").map((s) => ({ id: s.id, name: s.name, build_tag: s.build_tag ?? "", is_new: s.is_new }))
+    services.filter((s) => s.source !== "jira").map((s) => ({ id: s.id, name: s.name, is_new: s.is_new }))
   );
   const [vlt, setVlt] = useState<VaultDraft[]>(
     vault.filter((v) => v.source !== "jira").map((v) => ({ id: v.id, vault_key: v.vault_key, vault_value: v.vault_value ?? "" }))
@@ -242,7 +228,7 @@ function ImpactModal({
 
   const svcOptions = svcSuggest.map((n) => ({ value: n, label: n }));
 
-  const addSvc = () => setSvc((a) => [...a, { name: "", build_tag: "", is_new: false }]);
+  const addSvc = () => setSvc((a) => [...a, { name: "", is_new: false }]);
   const addVlt = () => setVlt((a) => [...a, { vault_key: "", vault_value: "" }]);
 
   return (
@@ -261,7 +247,6 @@ function ImpactModal({
                 <div key={s.id} className="flex items-center gap-2 font-mono text-xs text-ink-700">
                   {s.name}
                   {s.is_new && <span className="rounded bg-sun-100 px-1 py-0.5 text-[9px] font-bold text-sun-700">NEW</span>}
-                  {s.build_tag && <span className="rounded bg-mist-100 px-1.5 py-0.5 text-ink-700">{s.build_tag}</span>}
                 </div>
               ))}
             </div>
@@ -276,9 +261,6 @@ function ImpactModal({
                     placeholder="Search / add service…"
                     options={svcOptions} />
                 </div>
-                <input className={inputCls + " w-44 shrink-0 font-mono"} value={row.build_tag}
-                  onChange={(e) => setSvc((a) => a.map((r, j) => j === i ? { ...r, build_tag: e.target.value } : r))}
-                  placeholder="build tag" />
                 <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-700" title="Service belum pernah ke production">
                   <input type="checkbox" checked={row.is_new}
                     onChange={(e) => setSvc((a) => a.map((r, j) => j === i ? { ...r, is_new: e.target.checked } : r))} />
