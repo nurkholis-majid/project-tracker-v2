@@ -57,6 +57,13 @@ export async function POST(req: Request) {
   const sprintField = process.env.JIRA_SPRINT_FIELD || "customfield_10020";
   const epicLinkField = process.env.JIRA_EPIC_LINK_FIELD; // opsional: skema lama (Epic Link)
 
+  // Technical Impact — opsional. Diisi per story, dirangkum unik ke epic saat
+  // sync. Kalau env field-nya belum diset, bagian ini otomatis dilewati
+  // (fitur mati), persis pola JIRA_EPIC_LINK_FIELD.
+  const servicesField = process.env.JIRA_IMPACTED_SERVICES_FIELD; // mis. customfield_101xx (options)
+  const flagField = process.env.JIRA_FEATURE_FLAG_FIELD;          // mis. customfield_101xx (labels)
+  const vaultField = process.env.JIRA_VAULT_FIELD;                // opsional (labels/teks "KEY=VALUE")
+
   const body = await req.json().catch(() => ({}));
   const jql: string =
     body.jql ||
@@ -75,6 +82,19 @@ export async function POST(req: Request) {
   // paginasi pakai nextPageToken, dan `fields` WAJIB disebut (defaultnya cuma "id").
   const fieldList = ["summary", "status", "issuetype", "parent", "resolutiondate", spField, sprintField];
   if (epicLinkField) fieldList.push(epicLinkField);
+  if (servicesField) fieldList.push(servicesField);
+  if (flagField) fieldList.push(flagField);
+  if (vaultField) fieldList.push(vaultField);
+
+  /** Normalkan isi field Jira ke array string unik: handle options (array of
+   *  {value}/{name}), labels (array of string), dan teks dipisah koma/baris. */
+  const fieldToStrings = (raw: any): string[] => {
+    if (raw == null) return [];
+    const pick = (x: any): string =>
+      x == null ? "" : typeof x === "string" ? x : typeof x === "object" ? String(x.value ?? x.name ?? x.label ?? "") : String(x);
+    const arr = Array.isArray(raw) ? raw.map(pick) : typeof raw === "string" ? raw.split(/[,\n;]+/) : [pick(raw)];
+    return arr.map((t) => t.trim()).filter(Boolean);
+  };
 
   /** Ambil semua issue untuk satu JQL, ikuti nextPageToken sampai habis. */
   async function search(q: string): Promise<JiraIssue[]> {
@@ -259,12 +279,105 @@ export async function POST(req: Request) {
     storyCount = rows.length;
   }
 
+  /* ---------- Technical Impact (opsional) ----------
+     Rangkum impacted service / feature flag / vault dari level STORY ke
+     level EPIC secara unik. Hanya baris source='jira' yang di-refresh —
+     baris yang ditambah manual di menu Technical Impact tidak disentuh. */
+  let impactNote = "";
+  if (servicesField || flagField || vaultField) {
+    try {
+      const svcByEpic = new Map<string, Set<string>>();
+      const flagByEpic = new Map<string, Set<string>>();
+      const vaultByEpic = new Map<string, Map<string, string | null>>();
+      const touched = new Set<string>();
+
+      for (const i of storyIssues) {
+        const f = i.fields;
+        const key = epicKeyOf(f);
+        const epicId = (key ? epicIdByKey.get(key) : undefined) ?? existingByKey.get(i.key)?.epic_id ?? undefined;
+        if (!epicId) continue; // story tanpa epic: impact-nya tak punya tempat
+        touched.add(epicId);
+
+        if (servicesField)
+          for (const name of fieldToStrings(f[servicesField]))
+            (svcByEpic.get(epicId) ?? svcByEpic.set(epicId, new Set()).get(epicId)!).add(name);
+        if (flagField)
+          for (const name of fieldToStrings(f[flagField]))
+            (flagByEpic.get(epicId) ?? flagByEpic.set(epicId, new Set()).get(epicId)!).add(name);
+        if (vaultField)
+          for (const raw of fieldToStrings(f[vaultField])) {
+            const eq = raw.indexOf("=");
+            const vk = (eq === -1 ? raw : raw.slice(0, eq)).trim();
+            const vv = eq === -1 ? null : raw.slice(eq + 1).trim() || null;
+            if (!vk) continue;
+            const m = vaultByEpic.get(epicId) ?? vaultByEpic.set(epicId, new Map()).get(epicId)!;
+            if (!m.has(vk)) m.set(vk, vv); // dedupe by key, nilai pertama menang
+          }
+      }
+
+      const touchedArr = Array.from(touched);
+
+      // Services: ganti hanya baris jira untuk epic yang tersentuh, lalu insert.
+      if (servicesField && touchedArr.length) {
+        await db.from("epic_services").delete().eq("source", "jira").in("epic_id", touchedArr);
+        const rows: any[] = [];
+        for (const [epicId, set] of svcByEpic)
+          Array.from(set).forEach((name, i) => rows.push({ epic_id: epicId, name, source: "jira", sort_order: i }));
+        if (rows.length) await db.from("epic_services").insert(rows);
+      }
+
+      // Vault: sama pola.
+      if (vaultField && touchedArr.length) {
+        await db.from("epic_vault").delete().eq("source", "jira").in("epic_id", touchedArr);
+        const rows: any[] = [];
+        for (const [epicId, map] of vaultByEpic)
+          Array.from(map.entries()).forEach(([vault_key, vault_value], i) =>
+            rows.push({ epic_id: epicId, vault_key, vault_value, source: "jira", sort_order: i }));
+        if (rows.length) await db.from("epic_vault").insert(rows);
+      }
+
+      // Feature flag: pakai tabel feature_flags (dipakai bersama menu Feature
+      // Flag). Hanya TAMBAH / tautkan — tidak pernah menghapus, karena status
+      // DEV/UAT/PROD dikelola manual di menu Feature Flag.
+      if (flagField && flagByEpic.size) {
+        const { data: existingFlags } = await db.from("feature_flags").select("id,name,epic_ids");
+        const byName = new Map((existingFlags ?? []).map((fl: any) => [fl.name, fl]));
+        for (const [epicId, set] of flagByEpic) {
+          for (const name of set) {
+            const ex: any = byName.get(name);
+            if (ex) {
+              const ids: string[] = ex.epic_ids ?? [];
+              if (!ids.includes(epicId)) {
+                await db.from("feature_flags").update({ epic_ids: [...ids, epicId] }).eq("id", ex.id);
+                ex.epic_ids = [...ids, epicId];
+              }
+            } else {
+              const { data: ins } = await db
+                .from("feature_flags")
+                .insert({ name, epic_ids: [epicId], dev: false, uat: false, prod: false })
+                .select()
+                .single();
+              if (ins) byName.set(name, ins);
+            }
+          }
+        }
+      }
+
+      impactNote =
+        ` | impact: ${svcByEpic.size ? [...svcByEpic.values()].reduce((a, s) => a + s.size, 0) : 0} service, ` +
+        `${flagByEpic.size ? [...flagByEpic.values()].reduce((a, s) => a + s.size, 0) : 0} flag, ` +
+        `${vaultByEpic.size ? [...vaultByEpic.values()].reduce((a, m) => a + m.size, 0) : 0} vault (dari story → epic, unik)`;
+    } catch (e: any) {
+      impactNote = ` | impact sync gagal: ${String(e?.message ?? e).slice(0, 120)}`;
+    }
+  }
+
   await db.from("sync_runs").insert({
     jql,
     epics_upsert: epicCount,
     stories_upsert: storyCount,
     status: "ok",
-    message: `${issues.length} issue diproses, ${unlinked} story tanpa epic`,
+    message: `${issues.length} issue diproses, ${unlinked} story tanpa epic${impactNote}`,
   });
 
   // 0 issue biasanya bukan error kode: JQL-nya memang tidak match apa pun.

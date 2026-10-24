@@ -121,6 +121,29 @@ export const EMPTY_TRACKER: Tracker = { epics: [], stories: [], releases: [], do
 export const JIRA_BROWSE =
   (process.env.NEXT_PUBLIC_JIRA_BASE_URL || "https://incubation.atlassian.net") + "/browse/";
 
+export type EpicService = {
+  id: string;
+  epic_id: string;
+  name: string;
+  build_tag: string | null;
+  is_new: boolean;
+  note: string | null;
+  source: "manual" | "jira";
+  sort_order: number;
+  created_at?: string;
+};
+
+export type EpicVault = {
+  id: string;
+  epic_id: string;
+  vault_key: string;
+  vault_value: string | null;
+  note: string | null;
+  source: "manual" | "jira";
+  sort_order: number;
+  created_at?: string;
+};
+
 export type System = {
   id: string;
   name: string;
