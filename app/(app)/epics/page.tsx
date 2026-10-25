@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTracker } from "@/lib/useTracker";
+import { supabase } from "@/lib/supabase";
 import { epicStats, fmt, num } from "@/lib/kpi";
-import { EPIC_STATUS, STORY_PROGRESS, type Epic, type Story, type Flag } from "@/lib/types";
+import { EPIC_STATUS, STORY_PROGRESS, type Epic, type Story, type Flag, type EpicService, type EpicVault } from "@/lib/types";
 import { epicWindow } from "@/lib/kpi";
 import { catList, catColorMap } from "@/lib/category";
 import { CreateBtn, CatBadge, Combobox,
@@ -38,6 +39,21 @@ export default function EpicsPage() {
   const [sort, setSort] = useState<SortKey>("baru");
   const [form, setForm] = useState<Partial<Epic> | null>(null);
   const [detail, setDetail] = useState<Epic | null>(null);
+  const sb = useMemo(() => supabase(), []);
+  const [impactSvc, setImpactSvc] = useState<EpicService[]>([]);
+  const [impactVault, setImpactVault] = useState<EpicVault[]>([]);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      sb.from("epic_services").select("*").order("sort_order"),
+      sb.from("epic_vault").select("*").order("sort_order"),
+    ]).then(([s1, s2]) => {
+      if (!alive) return;
+      setImpactSvc((s1.data ?? []) as EpicService[]);
+      setImpactVault((s2.data ?? []) as EpicVault[]);
+    });
+    return () => { alive = false; };
+  }, [sb]);
 
   const stats = useMemo(() => epicStats(data), [data]);
   const catMap = useMemo(() => catColorMap(catList(data.epics)), [data.epics]);
@@ -192,6 +208,8 @@ export default function EpicsPage() {
           stories={data.stories.filter((s) => s.epic_id === detail.id)}
           releases={data.releases}
           flags={data.flags.filter((f) => (f.epic_ids ?? []).includes(detail.id))}
+          services={impactSvc.filter((s) => s.epic_id === detail.id)}
+          vault={impactVault.filter((v) => v.epic_id === detail.id)}
           onClose={() => setDetail(null)}
           onEdit={() => { setForm(detail); setDetail(null); }}
           onPatch={(id, changes) => patch("stories", id, changes)}
@@ -269,12 +287,14 @@ export default function EpicsPage() {
    Yang belum selesai ditaruh di atas — itu yang butuh perhatian.
 --------------------------------------------------------------------- */
 function EpicDetail({
-  epic, stories, releases, flags, onClose, onEdit, onPatch,
+  epic, stories, releases, flags, services, vault, onClose, onEdit, onPatch,
 }: {
   epic: Epic;
   stories: Story[];
   releases: { id: string; fix_version: string; deploy_date?: string | null }[];
   flags: Flag[];
+  services: EpicService[];
+  vault: EpicVault[];
   onClose: () => void;
   onEdit: () => void;
   onPatch: (id: string, changes: Record<string, unknown>) => void;
@@ -346,6 +366,31 @@ function EpicDetail({
                       className={`rounded px-1 text-[9px] font-semibold uppercase ${f[env] ? "bg-ocean-100 text-ocean-700" : "bg-mist-100 text-mist-400"}`}>{env}</span>
                   ))}
                 </span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* microservices (Technical Impact) */}
+        {services.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-mist-500">Microservices</span>
+            {services.map((sv) => (
+              <span key={sv.id} className="inline-flex items-center gap-1.5 rounded-full border border-mist-200 bg-white px-2.5 py-1 font-mono text-xs text-ink-800">
+                <Icon name="systems" className="h-3.5 w-3.5 text-mist-400" />{sv.name}
+                {sv.is_new && <span className="rounded bg-sun-100 px-1 py-0.5 text-[9px] font-bold text-sun-700">NEW</span>}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* vault / config (Technical Impact) */}
+        {vault.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-mist-500">Vault</span>
+            {vault.map((v) => (
+              <span key={v.id} className="inline-flex items-center gap-1.5 rounded-full border border-mist-200 bg-white px-2.5 py-1 font-mono text-xs text-ink-700" title={v.vault_value ? `${v.vault_key} = ${v.vault_value}` : v.vault_key}>
+                <Icon name="lock" className="h-3.5 w-3.5 text-mist-400" />{v.vault_key}
               </span>
             ))}
           </div>
