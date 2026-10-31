@@ -15,8 +15,23 @@ import { useCanEdit } from "@/lib/permissions";
 type SvcDraft = { id?: string; name: string; is_new: boolean };
 type VaultDraft = { id?: string; vault_key: string; vault_value: string };
 
+// Numeric part of a Jira key (DLB-30056 -> 30056); missing keys sort last.
+const jiraNo = (k: string | null) => { const m = (k ?? "").match(/(\d+)/); return m ? parseInt(m[1], 10) : -1; };
+
+function StatusBadge({ released }: { released: boolean }) {
+  return released ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />Released
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-mist-100 px-2.5 py-1 text-[11px] font-semibold text-mist-600">
+      <span className="h-1.5 w-1.5 rounded-full bg-mist-300" />Not released
+    </span>
+  );
+}
+
 export default function TechnicalImpactPage() {
-  const { data, loading, error, save, reload } = useTracker();
+  const { data, loading, error } = useTracker();
   const sb = useMemo(() => supabase(), []);
   const canEdit = useCanEdit("impact");
 
@@ -27,6 +42,7 @@ export default function TechnicalImpactPage() {
 
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
+  const [stat, setStat] = useState("all");
   const [editEpic, setEditEpic] = useState<Epic | null>(null);
 
   const loadImpact = async () => {
@@ -35,7 +51,7 @@ export default function TechnicalImpactPage() {
       sb.from("epic_services").select("*").order("sort_order"),
       sb.from("epic_vault").select("*").order("sort_order"),
     ]);
-    if (s.error || v.error) setImpactErr("Technical Impact gagal dimuat — jalankan migration-010 di Supabase.");
+    if (s.error || v.error) setImpactErr("Could not load Technical Impact — run migration-010 in Supabase.");
     else setImpactErr(null);
     setServices((s.data ?? []) as EpicService[]);
     setVault((v.data ?? []) as EpicVault[]);
@@ -52,11 +68,18 @@ export default function TechnicalImpactPage() {
   const svcOf = (id: string) => services.filter((s) => s.epic_id === id);
   const vaultOf = (id: string) => vault.filter((v) => v.epic_id === id);
   const flagsOf = (id: string) => data.flags.filter((f) => (f.epic_ids ?? []).includes(id));
+  // Released = at least one story under the epic has release status "Deployed".
+  const releasedOf = (id: string) => data.stories.some((s) => s.epic_id === id && s.release_status === "Deployed");
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return data.epics.filter((e) => {
+    const filtered = data.epics.filter((e) => {
       if (cat !== "all" && (e.category ?? "") !== cat) return false;
+      if (stat !== "all") {
+        const rel = releasedOf(e.id);
+        if (stat === "released" && !rel) return false;
+        if (stat === "notreleased" && rel) return false;
+      }
       if (!needle) return true;
       const hay = [
         e.name, e.jira_key ?? "",
@@ -66,15 +89,23 @@ export default function TechnicalImpactPage() {
       ].join(" ").toLowerCase();
       return hay.includes(needle);
     });
+    // Not released first, then released; within each group newest Jira ticket on top.
+    return filtered.sort((a, b) => {
+      const ra = releasedOf(a.id) ? 1 : 0, rb = releasedOf(b.id) ? 1 : 0;
+      if (ra !== rb) return ra - rb;
+      return jiraNo(b.jira_key) - jiraNo(a.jira_key);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.epics, services, vault, data.flags, q, cat]);
+  }, [data.epics, data.stories, services, vault, data.flags, q, cat, stat]);
 
   if (loading || impactLoading) return <Loading />;
 
   return (
     <div>
-      <PageHead title="Technical Impact" sub="Microservices, feature flag, dan Vault config yang terdampak tiap epic.">
+      <PageHead title="Technical Impact" sub="Microservices, feature flags, and Vault config impacted by each epic.">
         <input className={filterCls + " w-56"} placeholder="Search epic / service / flag…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select w="w-44" value={stat} onChange={setStat}
+          options={[{ value: "all", label: "All status" }, { value: "notreleased", label: "Not released" }, { value: "released", label: "Released" }]} />
         <Select w="w-44" value={cat} onChange={setCat}
           options={[{ value: "all", label: "All categories" }, ...catList(data.epics).map((c) => ({ value: c, label: c }))]} />
       </PageHead>
@@ -86,10 +117,11 @@ export default function TechnicalImpactPage() {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <Th className="w-[28%]">Epic</Th>
-              <Th className="w-[24%]">Microservices</Th>
-              <Th className="w-[24%]">Feature flag</Th>
-              <Th className="w-[24%]">Vault</Th>
+              <Th className="w-[26%]">Epic</Th>
+              <Th className="w-[12%]">Status</Th>
+              <Th className="w-[22%]">Microservices</Th>
+              <Th className="w-[20%]">Feature flag</Th>
+              <Th className="w-[20%]">Vault</Th>
               <Th className="w-16" />
             </tr>
           </thead>
@@ -107,6 +139,7 @@ export default function TechnicalImpactPage() {
                       <CatBadge name={e.category} color={e.category ? catMap.get(e.category) : undefined} />
                     </div>
                   </Td>
+                  <Td><StatusBadge released={releasedOf(e.id)} /></Td>
                   <Td>
                     {svc.length ? (
                       <div className="flex flex-col gap-1.5">
@@ -114,7 +147,7 @@ export default function TechnicalImpactPage() {
                           <div key={s.id} className="flex items-center gap-1.5 font-mono text-xs text-ink-800">
                             {s.name}
                             {s.is_new && <span className="rounded bg-sun-100 px-1 py-0.5 text-[9px] font-bold text-sun-700">NEW</span>}
-                            {s.source === "jira" && <span className="rounded bg-ocean-50 px-1 py-0.5 text-[9px] font-bold text-ocean-600" title="Dari Jira sync">JIRA</span>}
+                            {s.source === "jira" && <span className="rounded bg-ocean-50 px-1 py-0.5 text-[9px] font-bold text-ocean-600" title="From Jira sync">JIRA</span>}
                           </div>
                         ))}
                       </div>
@@ -155,7 +188,7 @@ export default function TechnicalImpactPage() {
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-14 text-center text-sm text-mist-500">No epics match this filter.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-14 text-center text-sm text-mist-500">No epics match this filter.</td></tr>
             )}
           </tbody>
         </table>
@@ -168,15 +201,8 @@ export default function TechnicalImpactPage() {
           flags={flagsOf(editEpic.id)}
           services={svcOf(editEpic.id)}
           vault={vaultOf(editEpic.id)}
+          released={releasedOf(editEpic.id)}
           onClose={() => setEditEpic(null)}
-          onSaveFlag={async (name, jira) => {
-            await save("feature_flags", { name, jira_key: jira || null, epic_ids: [editEpic.id], dev: false, uat: false, prod: false });
-            await reload();
-          }}
-          onUnlinkFlag={async (f) => {
-            await save("feature_flags", { id: f.id, epic_ids: (f.epic_ids ?? []).filter((x) => x !== editEpic.id) });
-            await reload();
-          }}
           onSave={async (svc, vlt) => {
             const eid = editEpic.id;
             // Hanya ganti baris MANUAL — baris dari Jira sync (source='jira') dibiarkan.
@@ -201,17 +227,16 @@ export default function TechnicalImpactPage() {
 
 /* ------------------------------------------------------------------ modal */
 function ImpactModal({
-  epic, svcSuggest, flags, services, vault, onClose, onSave, onSaveFlag, onUnlinkFlag,
+  epic, svcSuggest, flags, services, vault, released, onClose, onSave,
 }: {
   epic: Epic;
   svcSuggest: string[];
   flags: Flag[];
   services: EpicService[];
   vault: EpicVault[];
+  released: boolean;
   onClose: () => void;
   onSave: (svc: SvcDraft[], vlt: VaultDraft[]) => void;
-  onSaveFlag: (name: string, jira: string) => void;
-  onUnlinkFlag: (f: Flag) => void;
 }) {
   // Baris dari Jira dikelola oleh sync (read-only di sini); yang bisa diedit hanya manual.
   const jiraSvc = services.filter((s) => s.source === "jira");
@@ -223,8 +248,6 @@ function ImpactModal({
   const [vlt, setVlt] = useState<VaultDraft[]>(
     vault.filter((v) => v.source !== "jira").map((v) => ({ id: v.id, vault_key: v.vault_key, vault_value: v.vault_value ?? "" }))
   );
-  const [flagName, setFlagName] = useState("");
-  const [flagJira, setFlagJira] = useState("");
 
   const svcOptions = svcSuggest.map((n) => ({ value: n, label: n }));
 
@@ -232,8 +255,12 @@ function ImpactModal({
   const addVlt = () => setVlt((a) => [...a, { vault_key: "", vault_value: "" }]);
 
   return (
-    <Modal wide title={epic.name} subtitle="Catat microservices, feature flag, dan Vault config yang terdampak." onClose={onClose}>
+    <Modal wide title={epic.name} subtitle="Microservices, feature flags, and Vault config impacted by this epic." onClose={onClose}>
       <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-mist-500">Release status</span>
+          <StatusBadge released={released} />
+        </div>
         {/* Microservices */}
         <section>
           <div className="mb-2 flex items-center justify-between">
@@ -242,7 +269,7 @@ function ImpactModal({
           </div>
           {jiraSvc.length > 0 && (
             <div className="mb-2 space-y-1 rounded-lg border border-mist-100 bg-mist-50/60 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-mist-400">Dari Jira sync (read-only)</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-mist-400">From Jira sync (read-only)</div>
               {jiraSvc.map((s) => (
                 <div key={s.id} className="flex items-center gap-2 font-mono text-xs text-ink-700">
                   {s.name}
@@ -251,7 +278,7 @@ function ImpactModal({
               ))}
             </div>
           )}
-          {svc.length === 0 && jiraSvc.length === 0 && <p className="text-xs text-mist-400">Belum ada service.</p>}
+          {svc.length === 0 && jiraSvc.length === 0 && <p className="text-xs text-mist-400">No services yet.</p>}
           <div className="space-y-2">
             {svc.map((row, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -261,7 +288,7 @@ function ImpactModal({
                     placeholder="Search / add service…"
                     options={svcOptions} />
                 </div>
-                <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-700" title="Service belum pernah ke production">
+                <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-700" title="Service never deployed to production">
                   <input type="checkbox" checked={row.is_new}
                     onChange={(e) => setSvc((a) => a.map((r, j) => j === i ? { ...r, is_new: e.target.checked } : r))} />
                   New
@@ -273,29 +300,24 @@ function ImpactModal({
           </div>
         </section>
 
-        {/* Feature flags (reuse feature_flags) */}
+        {/* Feature flags — read-only; managed in the Feature Flag menu / Jira sync */}
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><Icon name="flag" className="h-4 w-4 text-mist-500" /> Feature flags</h3>
           </div>
-          <div className="space-y-1.5">
-            {flags.length === 0 && <p className="text-xs text-mist-400">Epic ini belum punya feature flag.</p>}
-            {flags.map((f) => (
-              <div key={f.id} className="flex items-center gap-2 text-sm">
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-ocean-50 px-2 py-1 font-mono text-[11px] font-semibold text-ocean-700">
+          {flags.length === 0 ? (
+            <p className="text-xs text-mist-400">No feature flags linked to this epic.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {flags.map((f) => (
+                <span key={f.id} className="inline-flex items-center gap-1.5 rounded-md bg-ocean-50 px-2 py-1 font-mono text-[11px] font-semibold text-ocean-700" title={`PROD ${f.prod ? "on" : "off"}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${f.prod ? "bg-teal-500" : "bg-mist-300"}`} />{f.name}
+                  {f.jira_key && <span className="font-normal text-mist-400">{f.jira_key}</span>}
                 </span>
-                {f.jira_key && <span className="font-mono text-[11px] text-mist-500">{f.jira_key}</span>}
-                <button onClick={() => onUnlinkFlag(f)} className="ml-auto text-mist-400 hover:text-alert-600" title="Lepas dari epic ini"><Icon name="close" className="h-4 w-4" /></button>
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex gap-2">
-            <input className={inputCls + " min-w-0 flex-1 font-mono"} value={flagName} onChange={(e) => setFlagName(e.target.value)} placeholder="Flag name (FF_...)" />
-            <input className={inputCls + " w-32 shrink-0 font-mono"} value={flagJira} onChange={(e) => setFlagJira(e.target.value.toUpperCase())} placeholder="DLB-…" />
-            <Btn onClick={() => { if (flagName.trim()) { onSaveFlag(flagName.trim(), flagJira.trim()); setFlagName(""); setFlagJira(""); } }} className="shrink-0">Add</Btn>
-          </div>
-          <p className="mt-1.5 text-[11px] text-mist-400">Tersimpan di menu Feature Flag (sumber data sama). Juga terisi otomatis dari Jira sync (field label Feature Flag).</p>
+              ))}
+            </div>
+          )}
+          <p className="mt-1.5 text-[11px] text-mist-400">Managed in the Feature Flag menu and filled automatically from Jira sync — add or edit flags there.</p>
         </section>
 
         {/* Vault */}
@@ -306,13 +328,13 @@ function ImpactModal({
           </div>
           {jiraVlt.length > 0 && (
             <div className="mb-2 space-y-1 rounded-lg border border-mist-100 bg-mist-50/60 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-mist-400">Dari Jira sync (read-only)</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-mist-400">From Jira sync (read-only)</div>
               {jiraVlt.map((v) => (
                 <div key={v.id} className="font-mono text-xs text-ink-700">{v.vault_key}{v.vault_value ? <span className="text-mist-500"> = {v.vault_value}</span> : null}</div>
               ))}
             </div>
           )}
-          {vlt.length === 0 && jiraVlt.length === 0 && <p className="text-xs text-mist-400">Tidak ada perubahan Vault.</p>}
+          {vlt.length === 0 && jiraVlt.length === 0 && <p className="text-xs text-mist-400">No Vault changes.</p>}
           <div className="space-y-2">
             {vlt.map((row, i) => (
               <div key={i} className="flex items-center gap-2">
