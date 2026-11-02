@@ -166,9 +166,11 @@ export default function TechnicalImpactPage() {
                   </Td>
                   <Td>
                     {vks.length ? (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-col gap-1">
                         {vks.map((v) => (
-                          <span key={v.id} className="rounded-md bg-mist-100 px-2 py-1 font-mono text-[11px] text-ink-700" title={v.vault_value ? `${v.vault_key} = ${v.vault_value}` : v.vault_key}>{v.vault_key}</span>
+                          <div key={v.id} className="font-mono text-[11px] text-ink-700">
+                            {v.vault_key}{v.vault_value ? <span className="text-mist-500"> = {v.vault_value}</span> : null}
+                          </div>
                         ))}
                       </div>
                     ) : <span className="text-xs text-mist-400">—</span>}
@@ -254,6 +256,16 @@ function ImpactModal({
   const addSvc = () => setSvc((a) => [...a, { name: "", is_new: false }]);
   const addVlt = () => setVlt((a) => [...a, { vault_key: "", vault_value: "" }]);
 
+  // Copy all vault entries (Jira + manual) in the  "KEY": "value",  format.
+  const [vCopied, setVCopied] = useState(false);
+  const copyVault = async () => {
+    const text = [...vault]
+      .sort((a, b) => a.vault_key.localeCompare(b.vault_key))
+      .map((v) => `"${v.vault_key}": "${v.vault_value ?? ""}",`)
+      .join("\n");
+    try { await navigator.clipboard.writeText(text); setVCopied(true); setTimeout(() => setVCopied(false), 1500); } catch { /* ignore */ }
+  };
+
   return (
     <Modal wide title={epic.name} subtitle="Microservices, feature flags, and Vault config impacted by this epic." onClose={onClose}>
       <div className="space-y-6">
@@ -308,12 +320,13 @@ function ImpactModal({
           {flags.length === 0 ? (
             <p className="text-xs text-mist-400">No feature flags linked to this epic.</p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-col gap-1.5">
               {flags.map((f) => (
-                <span key={f.id} className="inline-flex items-center gap-1.5 rounded-md bg-ocean-50 px-2 py-1 font-mono text-[11px] font-semibold text-ocean-700" title={`PROD ${f.prod ? "on" : "off"}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${f.prod ? "bg-teal-500" : "bg-mist-300"}`} />{f.name}
-                  {f.jira_key && <span className="font-normal text-mist-400">{f.jira_key}</span>}
-                </span>
+                <div key={f.id} className="flex items-center gap-2 font-mono text-[11px]" title={`PROD ${f.prod ? "on" : "off"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${f.prod ? "bg-teal-500" : "bg-mist-300"}`} />
+                  <span className="font-semibold text-ocean-700">{f.name}</span>
+                  {f.jira_key && <span className="text-mist-400">{f.jira_key}</span>}
+                </div>
               ))}
             </div>
           )}
@@ -324,7 +337,12 @@ function ImpactModal({
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><Icon name="lock" className="h-4 w-4 text-mist-500" /> Vault / config</h3>
-            <Btn onClick={addVlt}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> Add key</span></Btn>
+            <div className="flex items-center gap-2">
+              {vault.length > 0 && (
+                <Btn onClick={copyVault}><span className="inline-flex items-center gap-1.5"><Icon name={vCopied ? "check" : "link"} className="h-4 w-4" /> {vCopied ? "Copied" : "Copy"}</span></Btn>
+              )}
+              <Btn onClick={addVlt}><span className="inline-flex items-center gap-1.5"><Icon name="plus" className="h-4 w-4" /> Add key</span></Btn>
+            </div>
           </div>
           {jiraVlt.length > 0 && (
             <div className="mb-2 space-y-1 rounded-lg border border-mist-100 bg-mist-50/60 p-2">

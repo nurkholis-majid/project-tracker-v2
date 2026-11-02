@@ -113,26 +113,36 @@ export async function POST(req: Request) {
   };
 
   // Parse a Vault field into key/value pairs. Handles ADF rich text, plain text
-  // or an array, and both  "KEY": "value",  and  KEY=value  line formats.
+  // or an array. Scans the WHOLE text for every  "KEY": "value"  (or KEY=value)
+  // pair — several pairs may share one line (comma-separated), so line-based
+  // splitting is not enough.
   const parseVault = (raw: any): { k: string; v: string | null }[] => {
-    let lines: string[];
-    if (raw == null) lines = [];
-    else if (Array.isArray(raw)) lines = raw.map((x) => (typeof x === "string" ? x : String(x?.value ?? x?.name ?? "")));
-    else if (typeof raw === "object") lines = adfText(raw).split(/\r?\n/);
-    else lines = String(raw).split(/\r?\n/);
+    let text: string;
+    if (raw == null) text = "";
+    else if (Array.isArray(raw)) text = raw.map((x) => (typeof x === "string" ? x : String(x?.value ?? x?.name ?? ""))).join("\n");
+    else if (typeof raw === "object") text = adfText(raw);
+    else text = String(raw);
 
     const out: { k: string; v: string | null }[] = [];
-    for (let line of lines) {
-      line = line.trim().replace(/[,{}]+$/g, "").replace(/^[{[]+/g, "").trim();
-      if (!line) continue;
-      const sep = line.search(/[:=]/);
-      let k: string, v: string | null;
-      if (sep === -1) { k = line; v = null; }
-      else { k = line.slice(0, sep); v = line.slice(sep + 1); }
-      k = k.trim().replace(/^["']|["']$/g, "").trim();
-      v = (v ?? "").trim().replace(/,$/, "").trim().replace(/^["']|["']$/g, "");
-      if (!k) continue;
+    const seen = new Set<string>();
+    // key (optionally quoted) + : or = + value (double/single-quoted, or bare up to , or newline)
+    const re = /["']?([A-Za-z0-9_.\-]+)["']?\s*[:=]\s*(?:"([^"]*)"|'([^']*)'|([^,\n]*))/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const k = m[1].trim();
+      const v = (m[2] ?? m[3] ?? m[4] ?? "").trim().replace(/,\s*$/, "").replace(/^["']|["']$/g, "").trim();
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
       out.push({ k, v: v || null });
+    }
+    // Fallback for formats without ':'/'=' (bare keys, one per line).
+    if (out.length === 0) {
+      for (let line of text.split(/\r?\n/)) {
+        line = line.trim().replace(/[,{}]+$/g, "").replace(/^[{[]+/g, "").trim();
+        if (!line || seen.has(line)) continue;
+        seen.add(line);
+        out.push({ k: line.replace(/^["']|["']$/g, ""), v: null });
+      }
     }
     return out;
   };
