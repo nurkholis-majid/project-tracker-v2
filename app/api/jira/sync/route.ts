@@ -96,6 +96,47 @@ export async function POST(req: Request) {
     return arr.map((t) => t.trim()).filter(Boolean);
   };
 
+  // Rich-text (paragraph) fields come back as ADF objects, not strings. Flatten
+  // to plain text, keeping block nodes on their own line so "key: value" entries
+  // stay separate. The Vault field is usually a rich-text field, which is why a
+  // plain string/array parser returns nothing for it.
+  const adfText = (node: any): string => {
+    if (node == null) return "";
+    if (typeof node === "string") return node;
+    if (Array.isArray(node)) return node.map(adfText).join("");
+    if (typeof node === "object") {
+      if (typeof node.text === "string") return node.text;
+      const inner = Array.isArray(node.content) ? node.content.map(adfText).join("") : "";
+      return node.type === "paragraph" || node.type === "listItem" ? inner + "\n" : inner;
+    }
+    return String(node);
+  };
+
+  // Parse a Vault field into key/value pairs. Handles ADF rich text, plain text
+  // or an array, and both  "KEY": "value",  and  KEY=value  line formats.
+  const parseVault = (raw: any): { k: string; v: string | null }[] => {
+    let lines: string[];
+    if (raw == null) lines = [];
+    else if (Array.isArray(raw)) lines = raw.map((x) => (typeof x === "string" ? x : String(x?.value ?? x?.name ?? "")));
+    else if (typeof raw === "object") lines = adfText(raw).split(/\r?\n/);
+    else lines = String(raw).split(/\r?\n/);
+
+    const out: { k: string; v: string | null }[] = [];
+    for (let line of lines) {
+      line = line.trim().replace(/[,{}]+$/g, "").replace(/^[{[]+/g, "").trim();
+      if (!line) continue;
+      const sep = line.search(/[:=]/);
+      let k: string, v: string | null;
+      if (sep === -1) { k = line; v = null; }
+      else { k = line.slice(0, sep); v = line.slice(sep + 1); }
+      k = k.trim().replace(/^["']|["']$/g, "").trim();
+      v = (v ?? "").trim().replace(/,$/, "").trim().replace(/^["']|["']$/g, "");
+      if (!k) continue;
+      out.push({ k, v: v || null });
+    }
+    return out;
+  };
+
   /** Ambil semua issue untuk satu JQL, ikuti nextPageToken sampai habis. */
   async function search(q: string): Promise<JiraIssue[]> {
     const out: JiraIssue[] = [];
@@ -305,13 +346,9 @@ export async function POST(req: Request) {
           for (const name of fieldToStrings(f[flagField]))
             (flagByEpic.get(epicId) ?? flagByEpic.set(epicId, new Set()).get(epicId)!).add(name);
         if (vaultField)
-          for (const raw of fieldToStrings(f[vaultField])) {
-            const eq = raw.indexOf("=");
-            const vk = (eq === -1 ? raw : raw.slice(0, eq)).trim();
-            const vv = eq === -1 ? null : raw.slice(eq + 1).trim() || null;
-            if (!vk) continue;
+          for (const { k, v } of parseVault(f[vaultField])) {
             const m = vaultByEpic.get(epicId) ?? vaultByEpic.set(epicId, new Map()).get(epicId)!;
-            if (!m.has(vk)) m.set(vk, vv); // dedupe by key, nilai pertama menang
+            if (!m.has(k)) m.set(k, v); // dedupe by key, nilai pertama menang
           }
       }
 
